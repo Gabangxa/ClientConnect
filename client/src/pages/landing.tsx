@@ -4,7 +4,7 @@ import { Briefcase, FileText, MessageSquare, CreditCard, Star, Shield } from "lu
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <div className="portal-gradient text-white">
         <div className="container mx-auto px-6 py-20">
@@ -12,7 +12,7 @@ export default function Landing() {
             <h1 className="text-5xl font-bold mb-6">
               Professional Client Portal
             </h1>
-            <p className="text-xl mb-8 text-blue-100">
+            <p className="text-xl mb-8 text-white/90 leading-relaxed">
               Share deliverables, track invoices, and communicate with clients through 
               branded, professional dashboards that build trust and streamline your workflow.
             </p>
@@ -42,9 +42,9 @@ export default function Landing() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <Card className="border-2 hover:border-primary/20 transition-colors">
+          <Card className="border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 backdrop-blur-sm">
             <CardHeader>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
                 <Briefcase className="h-6 w-6 text-primary" />
               </div>
               <CardTitle>Branded Dashboard</CardTitle>
@@ -54,10 +54,10 @@ export default function Landing() {
             </CardHeader>
           </Card>
 
-          <Card className="border-2 hover:border-primary/20 transition-colors">
+          <Card className="border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 backdrop-blur-sm">
             <CardHeader>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                <FileText className="h-6 w-6 text-green-600" />
+              <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4">
+                <FileText className="h-6 w-6 text-emerald-600" />
               </div>
               <CardTitle>Deliverables View</CardTitle>
               <CardDescription>
@@ -66,10 +66,10 @@ export default function Landing() {
             </CardHeader>
           </Card>
 
-          <Card className="border-2 hover:border-primary/20 transition-colors">
+          <Card className="border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 backdrop-blur-sm">
             <CardHeader>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                <Shield className="h-6 w-6 text-purple-600" />
+              <div className="w-12 h-12 bg-violet-500/10 rounded-xl flex items-center justify-center mb-4">
+                <Shield className="h-6 w-6 text-violet-600" />
               </div>
               <CardTitle>File Sharing</CardTitle>
               <CardDescription>
@@ -78,9 +78,9 @@ export default function Landing() {
             </CardHeader>
           </Card>
 
-          <Card className="border-2 hover:border-primary/20 transition-colors">
+          <Card className="border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 backdrop-blur-sm">
             <CardHeader>
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4">
                 <MessageSquare className="h-6 w-6 text-amber-600" />
               </div>
               <CardTitle>Chat or Notes Thread</CardTitle>
@@ -90,10 +90,10 @@ export default function Landing() {
             </CardHeader>
           </Card>
 
-          <Card className="border-2 hover:border-primary/20 transition-colors">
+          <Card className="border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 backdrop-blur-sm">
             <CardHeader>
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-                <CreditCard className="h-6 w-6 text-red-600" />
+              <div className="w-12 h-12 bg-rose-500/10 rounded-xl flex items-center justify-center mb-4">
+                <CreditCard className="h-6 w-6 text-rose-600" />
               </div>
               <CardTitle>Invoice & Payment Tracker</CardTitle>
               <CardDescription>
@@ -102,9 +102,9 @@ export default function Landing() {
             </CardHeader>
           </Card>
 
-          <Card className="border-2 hover:border-primary/20 transition-colors">
+          <Card className="border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 backdrop-blur-sm">
             <CardHeader>
-              <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-pink-500/10 rounded-xl flex items-center justify-center mb-4">
                 <Star className="h-6 w-6 text-pink-600" />
               </div>
               <CardTitle>Feedback Request Form</CardTitle>

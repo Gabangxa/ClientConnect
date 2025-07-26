@@ -92,10 +92,10 @@ export default function ClientPortal() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading project portal...</p>
+          <p className="text-muted-foreground">Loading project portal...</p>
         </div>
       </div>
     );
@@ -103,12 +103,12 @@ export default function ClientPortal() {
 
   if (!portalData) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6 text-center">
-            <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-            <h1 className="text-xl font-semibold text-slate-900 mb-2">Project Not Found</h1>
-            <p className="text-slate-600">
+            <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+            <h1 className="text-xl font-semibold text-foreground mb-2">Project Not Found</h1>
+            <p className="text-muted-foreground">
               The project portal you're looking for doesn't exist or has been moved.
             </p>
           </CardContent>
@@ -163,13 +163,13 @@ export default function ClientPortal() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-white border-b border-slate-200 px-6 py-4">
+        <header className="bg-card border-b border-border px-6 py-4 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-900">
+              <h2 className="text-2xl font-semibold text-foreground">
                 Welcome back, {project.clientName.split(' ')[0]}!
               </h2>
-              <p className="text-slate-600 mt-1">Here's what's new with your project</p>
+              <p className="text-muted-foreground mt-1">Here's what's new with your project</p>
             </div>
             <div className="flex items-center space-x-4">
               <div className="relative">

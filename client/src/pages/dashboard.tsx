@@ -34,10 +34,10 @@ export default function Dashboard() {
 
   if (isLoading || projectsLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading your dashboard...</p>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -48,15 +48,15 @@ export default function Dashboard() {
   const completedProjects = projects.filter(p => p.status === 'completed').length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold text-foreground">
               Welcome back, {(user as any)?.firstName || (user as any)?.email || 'Freelancer'}!
             </h1>
-            <p className="text-slate-600 mt-1">Manage your client projects and grow your business</p>
+            <p className="text-muted-foreground mt-1">Manage your client projects and grow your business</p>
           </div>
           <div className="flex items-center space-x-4">
             <Button onClick={() => window.location.href = "/api/logout"} variant="outline">
@@ -91,7 +91,7 @@ export default function Dashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{activeProjects}</div>
+              <div className="text-2xl font-bold text-emerald-600">{activeProjects}</div>
             </CardContent>
           </Card>
 
