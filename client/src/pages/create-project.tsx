@@ -25,9 +25,10 @@ export default function CreateProject() {
     resolver: zodResolver(insertProjectSchema),
     defaultValues: {
       name: "",
-      description: "",
+      description: null,
       clientName: "",
-      clientEmail: "",
+      clientEmail: null,
+      freelancerId: "", // This will be set by the backend
       status: "active",
       progress: 0,
     },
@@ -63,6 +64,18 @@ export default function CreateProject() {
   });
 
   const onSubmit = (data: ProjectFormData) => {
+    console.log("Form submitted with data:", data);
+    
+    // Ensure required fields are not empty
+    if (!data.name || !data.clientName) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createProjectMutation.mutate(data);
   };
 
@@ -194,6 +207,7 @@ export default function CreateProject() {
                     type="submit"
                     disabled={createProjectMutation.isPending}
                     className="flex-1"
+                    onClick={() => console.log("Create Project button clicked")}
                   >
                     {createProjectMutation.isPending ? (
                       <>
