@@ -4,6 +4,26 @@
 
 This is a professional client portal application built for freelancers and service providers to share deliverables, track invoices, and communicate with clients through branded dashboards. The application features a full-stack architecture with React frontend, Express backend, and PostgreSQL database using Drizzle ORM.
 
+## User Workflows
+
+### Freelancer Workflow
+1. **Sign Up & Authentication**: Log in using Replit authentication to access the dashboard
+2. **Create Client Projects**: Set up new projects with client information, project details, and timeline
+3. **Share Portal Access**: System generates unique share tokens for each project that clients can access without accounts
+4. **Manage Deliverables**: Upload files, documents, and completed work with descriptions and status updates
+5. **Client Communication**: View and respond to client messages through the dedicated messaging section on dashboard
+6. **Invoice Management**: Create and track invoices with status updates (draft, sent, paid)
+7. **Monitor Feedback**: Review client ratings and feedback for completed work
+
+### Client Workflow  
+1. **Access Portal**: Receive share link from freelancer - no account creation required
+2. **View Project Dashboard**: See branded project overview with timeline, deliverables, and communication
+3. **Download Deliverables**: Access and download completed work and files shared by freelancer
+4. **Send Messages**: Communicate directly with freelancer through built-in messaging system
+5. **Review Invoices**: View invoice details, amounts, and payment status
+6. **Provide Feedback**: Rate completed work and leave comments using star rating system
+7. **Track Progress**: Monitor project status and timeline updates in real-time
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
