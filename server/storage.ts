@@ -42,6 +42,7 @@ export interface IStorage {
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByProject(projectId: string): Promise<Message[]>;
+  getRecentMessagesForFreelancer(freelancerId: string): Promise<any[]>;
   markMessagesAsRead(projectId: string, senderType: string): Promise<void>;
   
   // Invoice operations
@@ -151,6 +152,31 @@ export class DatabaseStorage implements IStorage {
       .from(messages)
       .where(eq(messages.projectId, projectId))
       .orderBy(desc(messages.createdAt));
+  }
+
+  async getRecentMessagesForFreelancer(freelancerId: string): Promise<any[]> {
+    return await db
+      .select({
+        id: messages.id,
+        content: messages.content,
+        senderName: messages.senderName,
+        senderType: messages.senderType,
+        isRead: messages.isRead,
+        createdAt: messages.createdAt,
+        projectId: messages.projectId,
+        projectName: projects.name,
+        clientName: projects.clientName,
+      })
+      .from(messages)
+      .innerJoin(projects, eq(messages.projectId, projects.id))
+      .where(
+        and(
+          eq(projects.freelancerId, freelancerId),
+          eq(messages.senderType, 'client')
+        )
+      )
+      .orderBy(desc(messages.createdAt))
+      .limit(10);
   }
 
   async markMessagesAsRead(projectId: string, senderType: string): Promise<void> {
