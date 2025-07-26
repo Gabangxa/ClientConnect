@@ -78,44 +78,58 @@ export default function Dashboard() {
       </header>
 
       <div className="container mx-auto px-6 py-8">
-        {/* Recent Messages Alert */}
-        {recentMessages.length > 0 && (
-          <div className="mb-6">
-            <Card className="border-l-4 border-l-blue-500 bg-blue-50/50">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg flex items-center">
-                      <MessageSquare className="mr-2 h-5 w-5 text-blue-600" />
-                      Recent Client Messages
-                    </CardTitle>
-                    <CardDescription>
-                      You have {recentMessages.filter(m => !m.isRead).length} unread messages from clients
-                    </CardDescription>
-                  </div>
+        {/* Client Communication Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Messages Card */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center">
+                    <MessageSquare className="mr-2 h-5 w-5 text-blue-600" />
+                    Client Messages
+                    {recentMessages.filter(m => !m.isRead).length > 0 && (
+                      <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {recentMessages.filter(m => !m.isRead).length}
+                      </span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Latest messages from your clients across all projects
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-48 overflow-y-auto">
-                  {recentMessages.slice(0, 5).map((message: any) => (
-                    <div key={message.id} className={`p-3 rounded-lg border ${!message.isRead ? 'bg-white border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {recentMessages.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">No messages yet</h3>
+                  <p className="text-muted-foreground">Client messages will appear here when they contact you</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {recentMessages.map((message: any) => (
+                    <div key={message.id} className={`p-4 rounded-lg border transition-all hover:shadow-md ${!message.isRead ? 'bg-blue-50 border-blue-200' : 'bg-muted/30 border-border'}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-medium text-sm">{message.senderName}</span>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="font-semibold text-sm">{message.senderName}</span>
                             <span className="text-xs text-muted-foreground">•</span>
-                            <span className="text-xs text-muted-foreground">{message.projectName}</span>
+                            <span className="text-xs font-medium text-primary">{message.projectName}</span>
                             {!message.isRead && (
-                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                              <span className="flex items-center text-xs text-blue-600 font-medium">
+                                <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                                New
+                              </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-700 line-clamp-2">{message.content}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-sm text-foreground mb-2 leading-relaxed">{message.content}</p>
+                          <p className="text-xs text-muted-foreground">
                             {new Date(message.createdAt).toLocaleDateString()} at {new Date(message.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </p>
                         </div>
                         <Button
-                          variant="outline"
                           size="sm"
                           onClick={() => window.open(`/client/${projects.find(p => p.id === message.projectId)?.shareToken}`, '_blank')}
                         >
@@ -125,10 +139,51 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
+              <CardDescription>Manage your client work</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={() => setLocation("/create-project")} 
+                className="w-full justify-start"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Project
+              </Button>
+              {projects.length > 0 && (
+                <>
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.open(`/client/${projects[0]?.shareToken}`, '_blank')}
+                    className="w-full justify-start"
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    View Latest Project
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      const url = `${window.location.origin}/client/${projects[0]?.shareToken}`;
+                      navigator.clipboard.writeText(url);
+                      toast({ title: "Link copied!", description: "Project portal link copied to clipboard" });
+                    }}
+                    className="w-full justify-start"
+                  >
+                    <Briefcase className="mr-2 h-4 w-4" />
+                    Copy Project Link
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
