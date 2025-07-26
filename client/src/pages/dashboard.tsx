@@ -5,12 +5,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Briefcase, Users, FileText, MessageSquare } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import type { Project } from "@shared/schema";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [, setLocation] = useLocation();
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -62,12 +63,10 @@ export default function Dashboard() {
             <Button onClick={() => window.location.href = "/api/logout"} variant="outline">
               Sign Out
             </Button>
-            <Link href="/create-project">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New Project
-              </Button>
-            </Link>
+            <Button onClick={() => setLocation("/create-project")}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Project
+            </Button>
           </div>
         </div>
       </header>
@@ -128,12 +127,10 @@ export default function Dashboard() {
                 <CardTitle>Your Projects</CardTitle>
                 <CardDescription>Manage and track your client projects</CardDescription>
               </div>
-              <Link href="/create-project">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Project
-                </Button>
-              </Link>
+              <Button onClick={() => setLocation("/create-project")}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Project
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -142,12 +139,10 @@ export default function Dashboard() {
                 <Briefcase className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-slate-900 mb-2">No projects yet</h3>
                 <p className="text-slate-600 mb-6">Create your first client project to get started</p>
-                <Link href="/create-project">
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Your First Project
-                  </Button>
-                </Link>
+                <Button onClick={() => setLocation("/create-project")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Your First Project
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">
