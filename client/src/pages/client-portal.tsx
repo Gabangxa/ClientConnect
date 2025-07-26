@@ -121,13 +121,13 @@ export default function ClientPortal() {
   
   // Calculate stats
   const filesShared = deliverables.length;
-  const unreadMessages = messages.filter(m => !m.isRead && m.senderType === 'freelancer').length;
-  const pendingInvoices = invoices.filter(i => i.status === 'pending');
+  const unreadMessages = messages.filter((m: any) => !m.isRead && m.senderType === 'freelancer').length;
+  const pendingInvoices = invoices.filter((i: any) => i.status === 'pending');
   const nextPayment = pendingInvoices.length > 0 ? pendingInvoices[0] : null;
 
   // Combine activities for timeline
   const activities = [
-    ...deliverables.map(d => ({
+    ...deliverables.map((d: any) => ({
       id: d.id,
       type: 'deliverable' as const,
       title: d.title,
@@ -135,7 +135,7 @@ export default function ClientPortal() {
       createdAt: d.createdAt,
       data: d,
     })),
-    ...messages.map(m => ({
+    ...messages.map((m: any) => ({
       id: m.id,
       type: 'message' as const,
       title: `Message from ${m.senderName}`,
@@ -143,7 +143,7 @@ export default function ClientPortal() {
       createdAt: m.createdAt,
       data: m,
     })),
-    ...invoices.map(i => ({
+    ...invoices.map((i: any) => ({
       id: i.id,
       type: 'invoice' as const,
       title: `Invoice ${i.invoiceNumber}`,
