@@ -54,9 +54,8 @@ export default function ClientPortal() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: MessageFormData) => {
-      const response = await apiRequest("POST", `/api/projects/${portalData?.project.id}/messages`, {
+      const response = await apiRequest("POST", `/api/client/${shareToken}/messages`, {
         ...data,
-        projectId: portalData?.project.id,
       });
       return response.json();
     },
@@ -72,9 +71,8 @@ export default function ClientPortal() {
 
   const submitFeedbackMutation = useMutation({
     mutationFn: async (data: FeedbackFormData) => {
-      const response = await apiRequest("POST", `/api/projects/${portalData?.project.id}/feedback`, {
+      const response = await apiRequest("POST", `/api/client/${shareToken}/feedback`, {
         ...data,
-        projectId: portalData?.project.id,
         rating: feedbackRating,
       });
       return response.json();
@@ -304,7 +302,7 @@ export default function ClientPortal() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {deliverables.slice(0, 4).map((file) => (
+                      {deliverables.slice(0, 4).map((file: any) => (
                         <div key={file.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
                           <div className="flex items-center space-x-3 mb-3">
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -339,7 +337,7 @@ export default function ClientPortal() {
           )}
 
           {activeTab === "timeline" && <ActivityTimeline activities={activities} />}
-          {activeTab === "files" && <FileUpload projectId={project.id} />}
+          {activeTab === "files" && <FileUpload projectId={project.id} shareToken={shareToken} />}
           {activeTab === "messages" && (
             <Card>
               <CardHeader>
@@ -348,7 +346,7 @@ export default function ClientPortal() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4 mb-6">
-                  {messages.map((message) => (
+                  {messages.map((message: any) => (
                     <div key={message.id} className="flex space-x-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         message.senderType === 'freelancer' 
@@ -419,7 +417,7 @@ export default function ClientPortal() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {invoices.map((invoice) => (
+                    {invoices.map((invoice: any) => (
                       <div key={invoice.id} className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div>
@@ -515,7 +513,8 @@ export default function ClientPortal() {
                                 <Textarea 
                                   rows={4}
                                   placeholder="Share your thoughts about the project..."
-                                  {...field} 
+                                  {...field}
+                                  value={field.value || ""}
                                 />
                               </FormControl>
                             </FormItem>
@@ -532,7 +531,7 @@ export default function ClientPortal() {
                 {feedback.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="font-medium">Previous Feedback</h3>
-                    {feedback.map((item) => (
+                    {feedback.map((item: any) => (
                       <div key={item.id} className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-medium">{item.clientName}</span>

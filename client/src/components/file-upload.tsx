@@ -11,9 +11,10 @@ import { CloudUpload, File, X } from "lucide-react";
 
 interface FileUploadProps {
   projectId: string;
+  shareToken?: string;
 }
 
-export function FileUpload({ projectId }: FileUploadProps) {
+export function FileUpload({ projectId, shareToken }: FileUploadProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [files, setFiles] = useState<File[]>([]);
@@ -27,7 +28,12 @@ export function FileUpload({ projectId }: FileUploadProps) {
       formData.append('title', data.title);
       formData.append('description', data.description);
 
-      const response = await fetch(`/api/projects/${projectId}/deliverables`, {
+      // Use client endpoint if shareToken is provided, otherwise use freelancer endpoint
+      const endpoint = shareToken 
+        ? `/api/client/${shareToken}/deliverables`
+        : `/api/projects/${projectId}/deliverables`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -40,13 +46,20 @@ export function FileUpload({ projectId }: FileUploadProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/client"] });
+      // Invalidate appropriate cache based on context
+      if (shareToken) {
+        queryClient.invalidateQueries({ queryKey: ["/api/client", shareToken] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      }
       setFiles([]);
       setTitle("");
       setDescription("");
       toast({
         title: "File uploaded!",
-        description: "Your file has been shared with the client.",
+        description: shareToken 
+          ? "Your file has been shared with the freelancer."
+          : "Your file has been shared with the client.",
       });
     },
     onError: () => {

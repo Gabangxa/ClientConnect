@@ -6,27 +6,53 @@ This is a professional client portal application built for freelancers and servi
 
 ## User Workflows
 
-### Freelancer Workflow
+### Freelancer Workflow (Authenticated Dashboard)
 1. **Sign Up & Authentication**: Log in using Replit authentication to access the dashboard
 2. **Create Client Projects**: Set up new projects with client information, project details, and timeline
-3. **Share Portal Access**: System generates unique share tokens for each project that clients can access without accounts
-4. **Manage Deliverables**: Upload files, documents, and completed work with descriptions and status updates
+3. **Share Portal Access**: System generates unique 90-day share tokens for each project that clients can access without accounts
+4. **Manage Deliverables**: Upload files, documents, and completed work with full CRUD permissions
 5. **Client Communication**: View and respond to client messages through the dedicated messaging section on dashboard
-6. **Invoice Management**: Create and track invoices with status updates (draft, sent, paid)
+6. **Invoice Management**: Create, edit, and track invoices with status updates (draft, sent, paid)
 7. **Monitor Feedback**: Review client ratings and feedback for completed work
+8. **Security Controls**: Regenerate share tokens, view access logs, and track client activity
 
-### Client Workflow  
-1. **Access Portal**: Receive share link from freelancer - no account creation required
+### Client Workflow (Share Link Access)
+1. **Access Portal**: Receive share link from freelancer - no account creation required (90-day token validity)
 2. **View Project Dashboard**: See branded project overview with timeline, deliverables, and communication
 3. **Download Deliverables**: Access and download completed work and files shared by freelancer
-4. **Send Messages**: Communicate directly with freelancer through built-in messaging system
-5. **Review Invoices**: View invoice details, amounts, and payment status
-6. **Provide Feedback**: Rate completed work and leave comments using star rating system
-7. **Track Progress**: Monitor project status and timeline updates in real-time
+4. **Upload Files**: Share files and documents with freelancer (with deletion rights for own uploads)
+5. **Send Messages**: Communicate directly with freelancer through built-in messaging system
+6. **Review Invoices**: View invoice details, amounts, and payment status (read-only)
+7. **Provide Feedback**: Rate completed work and leave comments using star rating system
+8. **Track Progress**: Monitor project status and timeline updates in real-time
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Progress (Phase 2 Complete - July 29, 2025)
+
+✅ **Phase 1**: Security Foundation
+- 90-day token expiration system
+- Access logging with timestamps and IP tracking
+- File ownership tracking (uploaderId, uploaderType)
+
+✅ **Phase 2**: Permission System
+- Role-based permission middleware (freelancer/client/guest)
+- Dual API endpoint structure:
+  - Freelancer: `/api/projects/{id}/...` (authenticated)
+  - Client: `/api/client/{shareToken}/...` (token-based)
+- Permission rules implemented:
+  - Deliverables: Both can upload, only uploaders can delete
+  - Messages: Both can send/receive
+  - Invoices: Freelancers create/edit, clients view-only
+  - Feedback: Clients create, both view
+- File ownership validation for deletions
+
+🚧 **Phase 3**: Client Interface Update (In Progress)
+- Separate client portal interface (/client/{token})
+- Client-specific component updates
+- Remove admin features from client view
 
 ## System Architecture
 

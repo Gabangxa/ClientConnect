@@ -47,6 +47,8 @@ export interface IStorage {
   // Deliverable operations
   createDeliverable(deliverable: InsertDeliverable): Promise<Deliverable>;
   getDeliverablesByProject(projectId: string): Promise<Deliverable[]>;
+  canDeleteDeliverable(deliverableId: string, userId: string, userType?: 'freelancer' | 'client'): Promise<boolean>;
+  deleteDeliverable(deliverableId: string): Promise<void>;
   
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
@@ -57,6 +59,7 @@ export interface IStorage {
   // Invoice operations
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   getInvoicesByProject(projectId: string): Promise<Invoice[]>;
+  getInvoiceById(id: string): Promise<Invoice | undefined>;
   updateInvoice(id: string, updates: Partial<Invoice>): Promise<Invoice>;
   
   // Feedback operations
@@ -203,6 +206,51 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(deliverables.createdAt));
   }
 
+  async canDeleteDeliverable(deliverableId: string, userId: string, userType: 'freelancer' | 'client' = 'freelancer'): Promise<boolean> {
+    const [deliverable] = await db
+      .select()
+      .from(deliverables)
+      .where(eq(deliverables.id, deliverableId));
+    
+    if (!deliverable) {
+      return false;
+    }
+
+    // Check if user is the original uploader
+    if (userType === 'freelancer') {
+      return deliverable.uploaderId === userId && deliverable.uploaderType === 'freelancer';
+    } else {
+      return deliverable.uploaderId === userId && deliverable.uploaderType === 'client';
+    }
+  }
+
+  async deleteDeliverable(deliverableId: string): Promise<void> {
+    // First get the file path to delete the actual file
+    const [deliverable] = await db
+      .select()
+      .from(deliverables)
+      .where(eq(deliverables.id, deliverableId));
+    
+    if (deliverable?.filePath) {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const fullPath = path.resolve(deliverable.filePath);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      } catch (error) {
+        console.error("Error deleting file:", error);
+        // Continue with database deletion even if file deletion fails
+      }
+    }
+
+    // Delete from database
+    await db
+      .delete(deliverables)
+      .where(eq(deliverables.id, deliverableId));
+  }
+
   // Message operations
   async createMessage(message: InsertMessage): Promise<Message> {
     const [newMessage] = await db
@@ -272,6 +320,14 @@ export class DatabaseStorage implements IStorage {
       .from(invoices)
       .where(eq(invoices.projectId, projectId))
       .orderBy(desc(invoices.createdAt));
+  }
+
+  async getInvoiceById(id: string): Promise<Invoice | undefined> {
+    const [invoice] = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, id));
+    return invoice;
   }
 
   async updateInvoice(id: string, updates: Partial<Invoice>): Promise<Invoice> {

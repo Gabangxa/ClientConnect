@@ -20,6 +20,57 @@ const upload = multer({
   },
 });
 
+// Permission middleware to determine user role and capabilities
+const withProjectAccess = (requiredRole?: 'freelancer' | 'client') => {
+  return async (req: any, res: any, next: any) => {
+    try {
+      const { projectId, shareToken } = req.params;
+      let userRole = 'guest';
+      let project = null;
+
+      // Check if user is authenticated (freelancer)
+      if (req.isAuthenticated?.() && req.user?.claims?.sub) {
+        const userId = req.user.claims.sub;
+        
+        if (projectId) {
+          // Get project and check if user is the freelancer
+          const projects = await storage.getProjectsByFreelancer(userId);
+          project = projects.find(p => p.id === projectId);
+          if (project) {
+            userRole = 'freelancer';
+          }
+        }
+      }
+
+      // Check if accessing via share token (client)
+      if (shareToken && userRole === 'guest') {
+        const validation = await storage.validateShareToken(shareToken);
+        if (validation.valid) {
+          project = validation.project;
+          userRole = 'client';
+        }
+      }
+
+      // Validate required role
+      if (requiredRole && userRole !== requiredRole) {
+        return res.status(403).json({ 
+          message: `Access denied. Required role: ${requiredRole}, current: ${userRole}` 
+        });
+      }
+
+      // Attach context to request
+      req.userRole = userRole;
+      req.project = project;
+      req.userId = req.user?.claims?.sub;
+
+      next();
+    } catch (error) {
+      console.error("Error in permission middleware:", error);
+      res.status(500).json({ message: "Permission check failed" });
+    }
+  };
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
@@ -160,8 +211,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Deliverable routes
-  app.post('/api/projects/:projectId/deliverables', isAuthenticated, upload.single('file'), async (req: any, res) => {
+  // Freelancer deliverable upload (authenticated)
+  app.post('/api/projects/:projectId/deliverables', isAuthenticated, withProjectAccess('freelancer'), upload.single('file'), async (req: any, res) => {
     try {
       const { projectId } = req.params;
       const file = req.file;
@@ -190,6 +241,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Client deliverable upload (via share token)
+  app.post('/api/client/:shareToken/deliverables', withProjectAccess('client'), upload.single('file'), async (req: any, res) => {
+    try {
+      const project = req.project;
+      const file = req.file;
+      const clientName = req.body.clientName || project.clientName;
+      
+      const deliverableData = insertDeliverableSchema.parse({
+        projectId: project.id,
+        title: req.body.title,
+        description: req.body.description,
+        type: req.body.type || 'deliverable',
+        filePath: file?.path,
+        fileName: file?.originalname,
+        fileSize: file?.size,
+        mimeType: file?.mimetype,
+        uploaderId: req.params.shareToken, // Use share token as client identifier
+        uploaderType: 'client',
+        uploaderName: clientName,
+      });
+
+      const deliverable = await storage.createDeliverable(deliverableData);
+      res.json(deliverable);
+    } catch (error) {
+      console.error("Error creating client deliverable:", error);
+      res.status(500).json({ message: "Failed to create deliverable" });
+    }
+  });
+
   app.get('/api/projects/:projectId/deliverables', async (req, res) => {
     try {
       const { projectId } = req.params;
@@ -201,19 +281,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Message routes
-  app.post('/api/projects/:projectId/messages', async (req, res) => {
+  // Delete deliverable (only by original uploader)
+  app.delete('/api/deliverables/:deliverableId', async (req: any, res) => {
+    try {
+      const { deliverableId } = req.params;
+      const canDelete = await storage.canDeleteDeliverable(deliverableId, req.user?.claims?.sub);
+      
+      if (!canDelete) {
+        return res.status(403).json({ 
+          message: "Only the original uploader can delete this file" 
+        });
+      }
+
+      await storage.deleteDeliverable(deliverableId);
+      res.json({ message: "Deliverable deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting deliverable:", error);
+      res.status(500).json({ message: "Failed to delete deliverable" });
+    }
+  });
+
+  // Client delete deliverable (via share token)
+  app.delete('/api/client/:shareToken/deliverables/:deliverableId', withProjectAccess('client'), async (req: any, res) => {
+    try {
+      const { deliverableId, shareToken } = req.params;
+      const canDelete = await storage.canDeleteDeliverable(deliverableId, shareToken, 'client');
+      
+      if (!canDelete) {
+        return res.status(403).json({ 
+          message: "Only the original uploader can delete this file" 
+        });
+      }
+
+      await storage.deleteDeliverable(deliverableId);
+      res.json({ message: "Deliverable deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting deliverable:", error);
+      res.status(500).json({ message: "Failed to delete deliverable" });
+    }
+  });
+
+  // Freelancer message routes (authenticated)
+  app.post('/api/projects/:projectId/messages', isAuthenticated, withProjectAccess('freelancer'), async (req: any, res) => {
     try {
       const { projectId } = req.params;
+      const user = await storage.getUser(req.user.claims.sub);
+      
       const messageData = insertMessageSchema.parse({
         projectId,
-        ...req.body,
+        senderName: user?.firstName || user?.email || 'Freelancer',
+        senderType: 'freelancer',
+        content: req.body.content,
+        isRead: false,
       });
 
       const message = await storage.createMessage(messageData);
       res.json(message);
     } catch (error) {
-      console.error("Error creating message:", error);
+      console.error("Error creating freelancer message:", error);
       res.status(500).json({ message: "Failed to create message" });
     }
   });
@@ -229,8 +354,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Invoice routes
-  app.post('/api/projects/:projectId/invoices', isAuthenticated, upload.single('file'), async (req: any, res) => {
+  // Client message routes (via share token)
+  app.post('/api/client/:shareToken/messages', withProjectAccess('client'), async (req: any, res) => {
+    try {
+      const project = req.project;
+      
+      const messageData = insertMessageSchema.parse({
+        projectId: project.id,
+        senderName: req.body.senderName || project.clientName,
+        senderType: 'client',
+        content: req.body.content,
+        isRead: false,
+      });
+
+      const message = await storage.createMessage(messageData);
+      res.json(message);
+    } catch (error) {
+      console.error("Error creating client message:", error);
+      res.status(500).json({ message: "Failed to create message" });
+    }
+  });
+
+  app.get('/api/client/:shareToken/messages', withProjectAccess('client'), async (req: any, res) => {
+    try {
+      const project = req.project;
+      const messages = await storage.getMessagesByProject(project.id);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching client messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Invoice routes (freelancer only for create/edit)
+  app.post('/api/projects/:projectId/invoices', isAuthenticated, withProjectAccess('freelancer'), upload.single('file'), async (req: any, res) => {
     try {
       const { projectId } = req.params;
       const file = req.file;
@@ -240,6 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoiceNumber: req.body.invoiceNumber,
         amount: parseInt(req.body.amount),
         description: req.body.description,
+        status: req.body.status || 'pending',
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
         filePath: file?.path,
       });
@@ -263,19 +421,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Feedback routes
-  app.post('/api/projects/:projectId/feedback', async (req, res) => {
+  // Client invoice viewing (read-only via share token)
+  app.get('/api/client/:shareToken/invoices', withProjectAccess('client'), async (req: any, res) => {
     try {
-      const { projectId } = req.params;
+      const project = req.project;
+      const invoices = await storage.getInvoicesByProject(project.id);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching client invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+
+  app.patch('/api/invoices/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Verify freelancer owns the project containing this invoice
+      const invoice = await storage.getInvoiceById(id);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const projects = await storage.getProjectsByFreelancer(req.user.claims.sub);
+      const ownsProject = projects.some(p => p.id === invoice.projectId);
+      
+      if (!ownsProject) {
+        return res.status(403).json({ message: "Access denied: Not your project" });
+      }
+
+      const updates = req.body;
+      const updatedInvoice = await storage.updateInvoice(id, updates);
+      res.json(updatedInvoice);
+    } catch (error) {
+      console.error("Error updating invoice:", error);
+      res.status(500).json({ message: "Failed to update invoice" });
+    }
+  });
+
+  // Feedback routes (clients can create, both can view)
+  app.post('/api/client/:shareToken/feedback', withProjectAccess('client'), async (req: any, res) => {
+    try {
+      const project = req.project;
       const feedbackData = insertFeedbackSchema.parse({
-        projectId,
-        ...req.body,
+        projectId: project.id,
+        clientName: req.body.clientName || project.clientName,
+        rating: req.body.rating,
+        comment: req.body.comment,
+        isPublic: req.body.isPublic || false,
       });
 
       const feedbackItem = await storage.createFeedback(feedbackData);
       res.json(feedbackItem);
     } catch (error) {
-      console.error("Error creating feedback:", error);
+      console.error("Error creating client feedback:", error);
       res.status(500).json({ message: "Failed to create feedback" });
     }
   });
@@ -287,6 +486,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(feedbackList);
     } catch (error) {
       console.error("Error fetching feedback:", error);
+      res.status(500).json({ message: "Failed to fetch feedback" });
+    }
+  });
+
+  app.get('/api/client/:shareToken/feedback', withProjectAccess('client'), async (req: any, res) => {
+    try {
+      const project = req.project;
+      const feedbackList = await storage.getFeedbackByProject(project.id);
+      res.json(feedbackList);
+    } catch (error) {
+      console.error("Error fetching client feedback:", error);
       res.status(500).json({ message: "Failed to fetch feedback" });
     }
   });
