@@ -5,6 +5,7 @@ import {
   messages,
   invoices,
   feedback,
+  accessLogs,
   type User,
   type UpsertUser,
   type Project,
@@ -17,9 +18,11 @@ import {
   type InsertInvoice,
   type Feedback,
   type InsertFeedback,
+  type AccessLog,
+  type InsertAccessLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 // Interface for storage operations
@@ -34,6 +37,12 @@ export interface IStorage {
   getProjectsByFreelancer(freelancerId: string): Promise<Project[]>;
   getProjectByShareToken(shareToken: string): Promise<Project | undefined>;
   updateProject(id: string, updates: Partial<Project>): Promise<Project>;
+  
+  // Security operations
+  validateShareToken(shareToken: string): Promise<{ valid: boolean; project?: Project }>;
+  regenerateShareToken(projectId: string, freelancerId: string): Promise<Project>;
+  logAccess(accessLog: InsertAccessLog): Promise<AccessLog>;
+  updateProjectAccess(projectId: string): Promise<void>;
   
   // Deliverable operations
   createDeliverable(deliverable: InsertDeliverable): Promise<Deliverable>;
@@ -118,6 +127,63 @@ export class DatabaseStorage implements IStorage {
       .where(eq(projects.id, id))
       .returning();
     return project;
+  }
+
+  // Security operations
+  async validateShareToken(shareToken: string): Promise<{ valid: boolean; project?: Project }> {
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.shareToken, shareToken));
+    
+    if (!project) {
+      return { valid: false };
+    }
+
+    // Check if token has expired
+    const now = new Date();
+    const expiry = new Date(project.tokenExpiry);
+    
+    if (now > expiry) {
+      return { valid: false, project };
+    }
+
+    return { valid: true, project };
+  }
+
+  async regenerateShareToken(projectId: string, freelancerId: string): Promise<Project> {
+    const newShareToken = randomUUID();
+    const newExpiry = new Date();
+    newExpiry.setDate(newExpiry.getDate() + 90); // 90 days from now
+
+    const [project] = await db
+      .update(projects)
+      .set({
+        shareToken: newShareToken,
+        tokenExpiry: newExpiry,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(projects.id, projectId), eq(projects.freelancerId, freelancerId)))
+      .returning();
+    return project;
+  }
+
+  async logAccess(accessLog: InsertAccessLog): Promise<AccessLog> {
+    const [newAccessLog] = await db
+      .insert(accessLogs)
+      .values(accessLog)
+      .returning();
+    return newAccessLog;
+  }
+
+  async updateProjectAccess(projectId: string): Promise<void> {
+    await db
+      .update(projects)
+      .set({
+        accessCount: sql`${projects.accessCount} + 1`,
+        lastAccessed: new Date(),
+      })
+      .where(eq(projects.id, projectId));
   }
 
   // Deliverable operations

@@ -100,15 +100,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Client portal route (no auth required)
+  // Regenerate share token for project
+  app.post('/api/projects/:id/regenerate-token', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const project = await storage.regenerateShareToken(id, userId);
+      res.json(project);
+    } catch (error) {
+      console.error("Error regenerating share token:", error);
+      res.status(500).json({ message: "Failed to regenerate share token" });
+    }
+  });
+
+  // Client portal route with security validation
   app.get('/api/client/:shareToken', async (req, res) => {
     try {
       const { shareToken } = req.params;
-      const project = await storage.getProjectByShareToken(shareToken);
       
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
+      // Validate share token and check expiration
+      const validation = await storage.validateShareToken(shareToken);
+      
+      if (!validation.valid) {
+        return res.status(401).json({ 
+          message: validation.project ? "Share link has expired" : "Invalid share link" 
+        });
       }
+
+      const project = validation.project!;
+
+      // Log client access
+      await storage.logAccess({
+        projectId: project.id,
+        shareToken,
+        clientIp: req.ip || req.connection.remoteAddress || 'unknown',
+        userAgent: req.get('User-Agent') || 'unknown',
+      });
+
+      // Update project access tracking
+      await storage.updateProjectAccess(project.id);
 
       const [deliverables, messages, invoices, feedbackList] = await Promise.all([
         storage.getDeliverablesByProject(project.id),
@@ -135,6 +165,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { projectId } = req.params;
       const file = req.file;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
       
       const deliverableData = insertDeliverableSchema.parse({
         projectId,
@@ -145,6 +177,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileName: file?.originalname,
         fileSize: file?.size,
         mimeType: file?.mimetype,
+        uploaderId: userId,
+        uploaderType: 'freelancer',
+        uploaderName: user?.firstName || user?.email || 'Freelancer',
       });
 
       const deliverable = await storage.createDeliverable(deliverableData);

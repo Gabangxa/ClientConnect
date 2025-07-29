@@ -46,6 +46,9 @@ export const projects = pgTable("projects", {
   clientName: varchar("client_name").notNull(),
   clientEmail: varchar("client_email"),
   shareToken: varchar("share_token").notNull().unique(),
+  tokenExpiry: timestamp("token_expiry").notNull().default(sql`NOW() + INTERVAL '90 days'`), // When share token expires
+  accessCount: integer("access_count").default(0), // How many times client accessed
+  lastAccessed: timestamp("last_accessed"), // Last client access time
   status: varchar("status").notNull().default("active"), // active, completed, paused
   progress: integer("progress").default(0), // 0-100
   createdAt: timestamp("created_at").defaultNow(),
@@ -61,10 +64,23 @@ export const deliverables = pgTable("deliverables", {
   fileName: varchar("file_name"),
   fileSize: integer("file_size"),
   mimeType: varchar("mime_type"),
+  uploaderId: varchar("uploader_id"), // ID of who uploaded (freelancer user ID or client identifier)
+  uploaderType: varchar("uploader_type").notNull().default("freelancer"), // freelancer, client
+  uploaderName: varchar("uploader_name"), // Display name of uploader
   type: varchar("type").notNull().default("deliverable"), // deliverable, milestone, update
   status: varchar("status").notNull().default("completed"), // draft, completed, approved
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Access log table for tracking client portal visits
+export const accessLogs = pgTable("access_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => projects.id),
+  shareToken: varchar("share_token").notNull(),
+  clientIp: varchar("client_ip"),
+  userAgent: text("user_agent"),
+  accessedAt: timestamp("accessed_at").defaultNow(),
 });
 
 export const messages = pgTable("messages", {
@@ -114,6 +130,14 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   messages: many(messages),
   invoices: many(invoices),
   feedback: many(feedback),
+  accessLogs: many(accessLogs),
+}));
+
+export const accessLogsRelations = relations(accessLogs, ({ one }) => ({
+  project: one(projects, {
+    fields: [accessLogs.projectId],
+    references: [projects.id],
+  }),
 }));
 
 export const deliverablesRelations = relations(deliverables, ({ one }) => ({
@@ -154,6 +178,9 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
   shareToken: true,
+  tokenExpiry: true,
+  accessCount: true,
+  lastAccessed: true,
   createdAt: true,
   updatedAt: true,
 }).extend({
@@ -165,6 +192,11 @@ export const insertDeliverableSchema = createInsertSchema(deliverables).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertAccessLogSchema = createInsertSchema(accessLogs).omit({
+  id: true,
+  accessedAt: true,
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
@@ -196,3 +228,5 @@ export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type Feedback = typeof feedback.$inferSelect;
+export type InsertAccessLog = z.infer<typeof insertAccessLogSchema>;
+export type AccessLog = typeof accessLogs.$inferSelect;
