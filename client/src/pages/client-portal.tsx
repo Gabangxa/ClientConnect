@@ -6,8 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMessageSchema, insertFeedbackSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Sidebar } from "@/components/sidebar";
-import { StatusCards } from "@/components/status-cards";
+import { ClientSidebar } from "@/components/client-sidebar";
+import { ClientHeader } from "@/components/client-header";
+import { ClientStatusCards } from "@/components/client-status-cards";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { FileUpload } from "@/components/file-upload";
 import { Button } from "@/components/ui/button";
@@ -152,45 +153,25 @@ export default function ClientPortal() {
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar 
+    <div className="flex min-h-screen bg-background">
+      <ClientSidebar 
         project={project}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-card border-b border-border px-6 py-4 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold text-foreground">
-                Welcome back, {project.clientName.split(' ')[0]}!
-              </h2>
-              <p className="text-muted-foreground mt-1">Here's what's new with your project</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Button variant="ghost" size="sm">
-                  <Bell className="h-4 w-4" />
-                  {unreadMessages > 0 && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs"></span>
-                  )}
-                </Button>
-              </div>
-              <Button size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Download All
-              </Button>
-            </div>
-          </div>
-        </header>
+        <ClientHeader 
+          project={project}
+          unreadMessages={unreadMessages}
+          shareToken={shareToken || ''}
+        />
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-6">
           {activeTab === "dashboard" && (
             <>
-              <StatusCards 
+              <ClientStatusCards 
                 project={project}
                 filesShared={filesShared}
                 unreadMessages={unreadMessages}
@@ -206,7 +187,8 @@ export default function ClientPortal() {
                   {/* Quick Message */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Quick Message</CardTitle>
+                      <CardTitle>Send a Message</CardTitle>
+                      <CardDescription>Get in touch with your service provider</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Form {...messageForm}>
@@ -219,7 +201,7 @@ export default function ClientPortal() {
                                 <FormLabel>Your Name</FormLabel>
                                 <FormControl>
                                   <input 
-                                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                                     placeholder="Enter your name"
                                     {...field} 
                                   />
@@ -235,7 +217,7 @@ export default function ClientPortal() {
                               <FormItem>
                                 <FormControl>
                                   <Textarea 
-                                    placeholder="Type your message here..." 
+                                    placeholder="Ask a question or share an update..." 
                                     rows={3}
                                     {...field} 
                                   />
@@ -257,72 +239,90 @@ export default function ClientPortal() {
                     </CardContent>
                   </Card>
 
-                  {/* Project Milestone */}
+                  {/* Project Status */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Current Milestone</CardTitle>
+                      <CardTitle>Project Status</CardTitle>
+                      <CardDescription>Current progress and timeline</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-900">{project.name}</span>
-                        <span className="text-sm text-slate-500">{project.progress || 0}%</span>
+                        <span className="text-sm font-medium text-foreground">{project.name}</span>
+                        <span className="text-sm text-muted-foreground">{project.progress || 0}%</span>
                       </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div className="w-full bg-secondary rounded-full h-2">
                         <div 
                           className="bg-primary h-2 rounded-full transition-all duration-300" 
                           style={{ width: `${project.progress || 0}%` }}
                         ></div>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-600">
+                        <span className="text-muted-foreground">
                           Started: {format(new Date(project.createdAt), 'MMM dd')}
                         </span>
                         <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
                           {project.status}
                         </Badge>
                       </div>
+                      {project.timeline && (
+                        <div className="text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3 inline mr-1" />
+                          Expected: {project.timeline}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
               </div>
 
-              {/* Recent Files */}
+              {/* Your Deliverables */}
               <Card className="mt-8">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Recent Files</CardTitle>
-                    <Button variant="ghost" size="sm">View All Files</Button>
+                    <div>
+                      <CardTitle>Your Deliverables</CardTitle>
+                      <CardDescription>Files and documents shared with you</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setActiveTab("files")}>
+                      View All Files
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
                   {deliverables.length === 0 ? (
                     <div className="text-center py-8">
-                      <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                      <p className="text-slate-600">No files shared yet</p>
+                      <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <p className="text-muted-foreground">No files shared yet</p>
+                      <p className="text-sm text-muted-foreground mt-1">Your service provider will share files here as they become available</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {deliverables.slice(0, 4).map((file: any) => (
-                        <div key={file.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {deliverables.slice(0, 6).map((file: any) => (
+                        <div key={file.id} className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer group">
                           <div className="flex items-center space-x-3 mb-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                              <FileText className="h-5 w-5 text-blue-600" />
+                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                              <FileText className="h-5 w-5 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-900 truncate">
+                              <p className="text-sm font-medium text-foreground truncate">
                                 {file.fileName || file.title}
                               </p>
                               {file.fileSize && (
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-muted-foreground">
                                   {(file.fileSize / 1024 / 1024).toFixed(1)} MB
                                 </p>
                               )}
+                              <div className="flex items-center mt-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {file.uploaderType === 'freelancer' ? 'From provider' : 'Your upload'}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center justify-between text-xs text-slate-500">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>{format(new Date(file.createdAt), 'MMM dd')}</span>
                             {file.filePath && (
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Download className="h-3 w-3" />
                               </Button>
                             )}
@@ -337,107 +337,229 @@ export default function ClientPortal() {
           )}
 
           {activeTab === "timeline" && <ActivityTimeline activities={activities} />}
-          {activeTab === "files" && <FileUpload projectId={project.id} shareToken={shareToken} />}
+          {activeTab === "files" && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Files & Deliverables</CardTitle>
+                  <CardDescription>Download files from your service provider and share your own</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Files from Provider */}
+                    <div>
+                      <h3 className="font-medium mb-4">Files Shared With You</h3>
+                      {deliverables.filter((d: any) => d.uploaderType === 'freelancer').length === 0 ? (
+                        <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
+                          <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">No files shared yet</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {deliverables.filter((d: any) => d.uploaderType === 'freelancer').map((file: any) => (
+                            <div key={file.id} className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{file.fileName || file.title}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {file.fileSize && `${(file.fileSize / 1024 / 1024).toFixed(1)} MB • `}
+                                      {format(new Date(file.createdAt), 'MMM dd')}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button size="sm" variant="outline">
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Your Uploads */}
+                    <div>
+                      <h3 className="font-medium mb-4">Your Uploads</h3>
+                      {deliverables.filter((d: any) => d.uploaderType === 'client').length === 0 ? (
+                        <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
+                          <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">No uploads yet</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {deliverables.filter((d: any) => d.uploaderType === 'client').map((file: any) => (
+                            <div key={file.id} className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center">
+                                    <FileText className="h-4 w-4 text-secondary-foreground" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{file.fileName || file.title}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {file.fileSize && `${(file.fileSize / 1024 / 1024).toFixed(1)} MB • `}
+                                      {format(new Date(file.createdAt), 'MMM dd')}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button size="sm" variant="ghost" className="text-muted-foreground">
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Upload Section */}
+              <FileUpload projectId={project.id} shareToken={shareToken} />
+            </div>
+          )}
           {activeTab === "messages" && (
             <Card>
               <CardHeader>
-                <CardTitle>Messages</CardTitle>
-                <CardDescription>Communicate with your freelancer</CardDescription>
+                <CardTitle>Communication</CardTitle>
+                <CardDescription>Stay in touch with your service provider</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4 mb-6">
-                  {messages.map((message: any) => (
-                    <div key={message.id} className="flex space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        message.senderType === 'freelancer' 
-                          ? 'bg-primary text-white' 
-                          : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        {message.senderName[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium text-sm">{message.senderName}</span>
-                          <span className="text-xs text-slate-500">
-                            {format(new Date(message.createdAt), 'MMM dd, h:mm a')}
-                          </span>
+                {messages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageSquare className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                    <p className="text-muted-foreground">No messages yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">Start the conversation below</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                    {messages.map((message: any) => (
+                      <div key={message.id} className="flex space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          message.senderType === 'freelancer' 
+                            ? 'bg-primary text-white' 
+                            : 'bg-secondary text-secondary-foreground'
+                        }`}>
+                          {message.senderName[0].toUpperCase()}
                         </div>
-                        <p className="text-slate-700 mt-1">{message.content}</p>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-sm">{message.senderName}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {message.senderType === 'freelancer' ? 'Provider' : 'You'}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(message.createdAt), 'MMM dd, h:mm a')}
+                            </span>
+                          </div>
+                          <p className="text-foreground mt-1 bg-secondary/50 rounded-lg p-3">{message.content}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                )}
+                
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-3">Send a New Message</h4>
+                  <Form {...messageForm}>
+                    <form onSubmit={messageForm.handleSubmit((data) => sendMessageMutation.mutate(data))} className="space-y-4">
+                      <FormField
+                        control={messageForm.control}
+                        name="senderName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Your Name</FormLabel>
+                            <FormControl>
+                              <input 
+                                className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary"
+                                placeholder="Enter your name"
+                                {...field} 
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={messageForm.control}
+                        name="content"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Message</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Ask a question, request changes, or provide feedback..." 
+                                rows={4}
+                                {...field} 
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" disabled={sendMessageMutation.isPending} className="w-full">
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Message
+                      </Button>
+                    </form>
+                  </Form>
                 </div>
-                <Form {...messageForm}>
-                  <form onSubmit={messageForm.handleSubmit((data) => sendMessageMutation.mutate(data))} className="space-y-4">
-                    <FormField
-                      control={messageForm.control}
-                      name="senderName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <input 
-                              className="w-full p-3 border border-slate-300 rounded-lg"
-                              placeholder="Your name"
-                              {...field} 
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={messageForm.control}
-                      name="content"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Textarea placeholder="Type your message..." {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" disabled={sendMessageMutation.isPending}>
-                      Send Message
-                    </Button>
-                  </form>
-                </Form>
               </CardContent>
             </Card>
           )}
           {activeTab === "invoices" && (
             <Card>
               <CardHeader>
-                <CardTitle>Invoices</CardTitle>
-                <CardDescription>View and manage project invoices</CardDescription>
+                <CardTitle>Billing & Payments</CardTitle>
+                <CardDescription>View invoices and payment information</CardDescription>
               </CardHeader>
               <CardContent>
                 {invoices.length === 0 ? (
                   <div className="text-center py-8">
-                    <CreditCard className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-600">No invoices yet</p>
+                    <CreditCard className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                    <p className="text-muted-foreground">No invoices yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">Invoices will appear here when issued</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {invoices.map((invoice: any) => (
-                      <div key={invoice.id} className="border border-slate-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-medium">Invoice #{invoice.invoiceNumber}</h3>
-                            <p className="text-sm text-slate-600">{invoice.description}</p>
-                            <p className="text-lg font-semibold mt-1">
+                      <div key={invoice.id} className="border border-border rounded-lg p-6 bg-card">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h3 className="font-semibold text-lg">Invoice #{invoice.invoiceNumber}</h3>
+                              <Badge variant={
+                                invoice.status === 'paid' ? 'default' :
+                                invoice.status === 'overdue' ? 'destructive' : 'secondary'
+                              }>
+                                {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                              </Badge>
+                            </div>
+                            <p className="text-muted-foreground mb-3">{invoice.description}</p>
+                            <div className="text-3xl font-bold text-foreground">
                               ${(invoice.amount / 100).toFixed(2)}
-                            </p>
+                            </div>
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-2">
+                              <span>Issued: {format(new Date(invoice.createdAt), 'MMM dd, yyyy')}</span>
+                              {invoice.dueDate && (
+                                <span>Due: {format(new Date(invoice.dueDate), 'MMM dd, yyyy')}</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <Badge variant={
-                              invoice.status === 'paid' ? 'default' :
-                              invoice.status === 'overdue' ? 'destructive' : 'secondary'
-                            }>
-                              {invoice.status}
-                            </Badge>
-                            {invoice.dueDate && (
-                              <p className="text-sm text-slate-500 mt-1">
-                                Due: {format(new Date(invoice.dueDate), 'MMM dd, yyyy')}
-                              </p>
+                          <div className="text-right space-y-2">
+                            {invoice.filePath && (
+                              <Button variant="outline" size="sm">
+                                <Download className="h-4 w-4 mr-2" />
+                                Download
+                              </Button>
+                            )}
+                            {invoice.status === 'pending' && (
+                              <Button size="sm" className="w-full">
+                                Pay Now
+                              </Button>
                             )}
                           </div>
                         </div>
@@ -451,90 +573,100 @@ export default function ClientPortal() {
           {activeTab === "feedback" && (
             <Card>
               <CardHeader>
-                <CardTitle>Feedback</CardTitle>
-                <CardDescription>Share your thoughts about the project</CardDescription>
+                <CardTitle>Share Your Experience</CardTitle>
+                <CardDescription>Help improve the service by sharing your thoughts</CardDescription>
               </CardHeader>
               <CardContent>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="mb-6">
-                      <Star className="mr-2 h-4 w-4" />
-                      Leave Feedback
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Project Feedback</DialogTitle>
-                      <DialogDescription>
-                        Share your experience working on this project
-                      </DialogDescription>
-                    </DialogHeader>
-                    <Form {...feedbackForm}>
-                      <form onSubmit={feedbackForm.handleSubmit((data) => submitFeedbackMutation.mutate(data))} className="space-y-4">
-                        <FormField
-                          control={feedbackForm.control}
-                          name="clientName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Your Name</FormLabel>
-                              <FormControl>
-                                <input 
-                                  className="w-full p-3 border border-slate-300 rounded-lg"
-                                  placeholder="Enter your name"
-                                  {...field} 
+                <div className="mb-6">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full" size="lg">
+                        <Star className="mr-2 h-4 w-4" />
+                        Rate This Project
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Rate Your Experience</DialogTitle>
+                        <DialogDescription>
+                          Your feedback helps improve the quality of service for future projects.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <Form {...feedbackForm}>
+                        <form onSubmit={feedbackForm.handleSubmit((data) => submitFeedbackMutation.mutate(data))} className="space-y-6">
+                          <FormField
+                            control={feedbackForm.control}
+                            name="clientName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Your Name</FormLabel>
+                                <FormControl>
+                                  <input 
+                                    className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary"
+                                    placeholder="Enter your name"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <div>
+                            <FormLabel>Overall Rating</FormLabel>
+                            <div className="flex space-x-1 mt-3 justify-center">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`h-8 w-8 cursor-pointer transition-colors ${
+                                    star <= feedbackRating 
+                                      ? 'text-amber-400 fill-amber-400' 
+                                      : 'text-muted-foreground hover:text-amber-300'
+                                  }`}
+                                  onClick={() => setFeedbackRating(star)}
                                 />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <div>
-                          <FormLabel>Overall Rating</FormLabel>
-                          <div className="flex space-x-1 mt-2">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`h-6 w-6 cursor-pointer transition-colors ${
-                                  star <= feedbackRating 
-                                    ? 'text-amber-400 fill-amber-400' 
-                                    : 'text-slate-300'
-                                }`}
-                                onClick={() => setFeedbackRating(star)}
-                              />
-                            ))}
+                              ))}
+                            </div>
+                            <p className="text-center text-sm text-muted-foreground mt-2">
+                              {feedbackRating === 0 ? 'Click to rate' :
+                               feedbackRating === 1 ? 'Poor' :
+                               feedbackRating === 2 ? 'Fair' :
+                               feedbackRating === 3 ? 'Good' :
+                               feedbackRating === 4 ? 'Very Good' : 'Excellent'}
+                            </p>
                           </div>
-                        </div>
-                        <FormField
-                          control={feedbackForm.control}
-                          name="comment"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Your Feedback</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  rows={4}
-                                  placeholder="Share your thoughts about the project..."
-                                  {...field}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" disabled={submitFeedbackMutation.isPending}>
-                          Submit Feedback
-                        </Button>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
+                          <FormField
+                            control={feedbackForm.control}
+                            name="comment"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Your Comments</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    rows={4}
+                                    placeholder="What did you think of the project? Any suggestions for improvement?"
+                                    {...field}
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <Button type="submit" disabled={submitFeedbackMutation.isPending} className="w-full">
+                            <Star className="mr-2 h-4 w-4" />
+                            Submit Feedback
+                          </Button>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
 
                 {feedback.length > 0 && (
                   <div className="space-y-4">
-                    <h3 className="font-medium">Previous Feedback</h3>
+                    <h3 className="font-medium text-foreground">Your Previous Feedback</h3>
                     {feedback.map((item: any) => (
-                      <div key={item.id} className="border border-slate-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">{item.clientName}</span>
+                      <div key={item.id} className="border border-border rounded-lg p-4 bg-secondary/20">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="font-medium text-foreground">{item.clientName}</span>
                           <div className="flex">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
@@ -542,18 +674,26 @@ export default function ClientPortal() {
                                 className={`h-4 w-4 ${
                                   star <= (item.rating || 0)
                                     ? 'text-amber-400 fill-amber-400'
-                                    : 'text-slate-300'
+                                    : 'text-muted-foreground'
                                 }`}
                               />
                             ))}
                           </div>
                         </div>
-                        <p className="text-slate-700">{item.comment}</p>
-                        <p className="text-xs text-slate-500 mt-2">
-                          {format(new Date(item.createdAt), 'MMM dd, yyyy')}
+                        <p className="text-foreground mb-2">{item.comment}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Submitted on {format(new Date(item.createdAt), 'MMM dd, yyyy')}
                         </p>
                       </div>
                     ))}
+                  </div>
+                )}
+                
+                {feedback.length === 0 && (
+                  <div className="text-center py-8">
+                    <Star className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                    <p className="text-muted-foreground">No feedback submitted yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">Share your experience using the button above</p>
                   </div>
                 )}
               </CardContent>
