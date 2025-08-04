@@ -9,6 +9,7 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import ClientPortal from "@/pages/client-portal";
 import CreateProject from "@/pages/create-project";
+import FreelancerClientView from "@/pages/freelancer-client-view";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -24,6 +25,7 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/create-project" component={CreateProject} />
+          <Route path="/project/:projectId/client-view" component={FreelancerClientView} />
         </>
       )}
       <Route component={NotFound} />

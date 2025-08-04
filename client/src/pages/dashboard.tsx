@@ -131,7 +131,7 @@ export default function Dashboard() {
                         </div>
                         <Button
                           size="sm"
-                          onClick={() => window.open(`/client/${projects.find(p => p.id === message.projectId)?.shareToken}`, '_blank')}
+                          onClick={() => setLocation(`/project/${message.projectId}/client-view`)}
                         >
                           Reply
                         </Button>
@@ -161,7 +161,7 @@ export default function Dashboard() {
                 <>
                   <Button 
                     variant="outline"
-                    onClick={() => window.open(`/client/${projects[0]?.shareToken}`, '_blank')}
+                    onClick={() => setLocation(`/project/${projects[0]?.id}/client-view`)}
                     className="w-full justify-start"
                   >
                     <MessageSquare className="mr-2 h-4 w-4" />
@@ -299,7 +299,7 @@ export default function Dashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(`/client/${project.shareToken}`, '_blank')}
+                          onClick={() => setLocation(`/project/${project.id}/client-view`)}
                         >
                           View Portal
                         </Button>

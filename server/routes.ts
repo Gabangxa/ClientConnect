@@ -127,6 +127,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single project for authenticated freelancer
+  app.get('/api/projects/:projectId', isAuthenticated, withProjectAccess('freelancer'), async (req: any, res) => {
+    try {
+      res.json(req.project);
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      res.status(500).json({ message: "Failed to fetch project" });
+    }
+  });
+
   // Get recent messages for freelancer
   app.get('/api/messages/recent', isAuthenticated, async (req: any, res) => {
     try {
@@ -270,7 +280,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:projectId/deliverables', async (req, res) => {
+  // Get deliverables for a project
+  app.get('/api/projects/:projectId/deliverables', isAuthenticated, withProjectAccess('freelancer'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const deliverables = await storage.getDeliverablesByProject(projectId);
@@ -343,7 +354,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:projectId/messages', async (req, res) => {
+  // Get messages for a project
+  app.get('/api/projects/:projectId/messages', isAuthenticated, withProjectAccess('freelancer'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const messages = await storage.getMessagesByProject(projectId);
@@ -410,7 +422,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:projectId/invoices', async (req, res) => {
+  // Get invoices for a project
+  app.get('/api/projects/:projectId/invoices', isAuthenticated, withProjectAccess('freelancer'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const invoices = await storage.getInvoicesByProject(projectId);
@@ -479,7 +492,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:projectId/feedback', async (req, res) => {
+  // Get feedback for a project
+  app.get('/api/projects/:projectId/feedback', isAuthenticated, withProjectAccess('freelancer'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const feedbackList = await storage.getFeedbackByProject(projectId);
