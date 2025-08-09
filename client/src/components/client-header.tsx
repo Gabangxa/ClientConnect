@@ -43,7 +43,9 @@ export function ClientHeader({ project, unreadMessages, shareToken, onNavigateTo
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 console.log('Bell icon clicked, navigating to messages');
                 onNavigateToMessages?.();
               }}

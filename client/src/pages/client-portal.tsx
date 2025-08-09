@@ -481,127 +481,146 @@ export default function ClientPortal() {
                     <p className="text-sm text-muted-foreground mt-1">Start the conversation below</p>
                   </div>
                 ) : (
-                  <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-                    {messages.map((message: any) => (
-                      <div key={message.id} className="space-y-3">
-                        <div className="flex space-x-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            message.senderType === 'freelancer' 
-                              ? 'bg-primary text-white' 
-                              : 'bg-secondary text-secondary-foreground'
-                          }`}>
-                            {message.senderName[0].toUpperCase()}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                <span className="font-medium text-sm">{message.senderName}</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {message.senderType === 'freelancer' ? 'Provider' : 'You'}
+                  <div className="space-y-6 mb-6 max-h-96 overflow-y-auto">
+                    {messages.map((message: any, index: number) => {
+                      const isFromFreelancer = message.senderType === 'freelancer';
+                      const nextMessage = messages[index + 1];
+                      const isFollowUp = nextMessage && 
+                        nextMessage.senderType === message.senderType && 
+                        nextMessage.senderName === message.senderName &&
+                        new Date(nextMessage.createdAt).getTime() - new Date(message.createdAt).getTime() < 300000; // 5 minutes
+                      
+                      return (
+                        <div key={message.id} className={`${isFromFreelancer ? 'mr-8' : 'ml-8'}`}>
+                          <div className={`flex ${isFromFreelancer ? 'justify-start' : 'justify-end'} space-x-3`}>
+                            {isFromFreelancer && (
+                              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
+                                {message.senderName[0].toUpperCase()}
+                              </div>
+                            )}
+                            
+                            <div className={`max-w-[70%] ${isFromFreelancer ? '' : 'order-2'}`}>
+                              <div className={`flex items-center space-x-2 mb-1 ${isFromFreelancer ? '' : 'justify-end'}`}>
+                                <span className="font-medium text-xs">{message.senderName}</span>
+                                <Badge variant={isFromFreelancer ? "default" : "secondary"} className="text-xs">
+                                  {isFromFreelancer ? 'Provider' : 'You'}
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">
                                   {format(new Date(message.createdAt), 'MMM dd, h:mm a')}
                                 </span>
                               </div>
-                              {message.senderType === 'freelancer' && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    console.log('Reply button clicked for message:', message.id);
-                                    console.log('Current replyingToMessage:', replyingToMessage);
-                                    setReplyingToMessage(replyingToMessage === message.id ? null : message.id);
-                                    if (replyingToMessage !== message.id) {
-                                      replyForm.setValue('senderName', project.clientName || '');
-                                    }
-                                    console.log('New replyingToMessage will be:', replyingToMessage === message.id ? null : message.id);
-                                  }}
-                                  className="text-xs"
-                                >
-                                  <Reply className="h-3 w-3 mr-1" />
-                                  Reply
-                                </Button>
-                              )}
-                            </div>
-                            <p className="text-foreground mt-1 bg-secondary/50 rounded-lg p-3">{message.content}</p>
-                          </div>
-                        </div>
-                        
-                        {/* Reply Form */}
-                        {replyingToMessage === message.id && (
-                          <div className="ml-11 border border-border rounded-lg p-4 bg-background">
-                            <h4 className="font-medium mb-3 text-sm">Reply to {message.senderName}</h4>
-                            <Form {...replyForm}>
-                              <form 
-                                onSubmit={replyForm.handleSubmit((data) => sendReplyMutation.mutate(data))} 
-                                className="space-y-3"
-                              >
-                                <FormField
-                                  control={replyForm.control}
-                                  name="senderName"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className="text-xs">Your Name</FormLabel>
-                                      <FormControl>
-                                        <input 
-                                          className="w-full p-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-primary"
-                                          placeholder="Enter your name"
-                                          {...field} 
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={replyForm.control}
-                                  name="content"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className="text-xs">Reply</FormLabel>
-                                      <FormControl>
-                                        <Textarea 
-                                          placeholder="Type your reply..." 
-                                          rows={3}
-                                          className="text-sm"
-                                          {...field} 
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                                <div className="flex justify-end space-x-2">
+                              
+                              <div className={`rounded-2xl p-3 ${
+                                isFromFreelancer 
+                                  ? 'bg-secondary text-foreground' 
+                                  : 'bg-primary text-primary-foreground'
+                              }`}>
+                                <p className="text-sm">{message.content}</p>
+                              </div>
+                              
+                              {isFromFreelancer && (
+                                <div className="flex justify-start mt-2">
                                   <Button
-                                    type="button"
-                                    variant="outline"
                                     size="sm"
-                                    onClick={() => setReplyingToMessage(null)}
+                                    variant="ghost"
+                                    onClick={() => {
+                                      console.log('Reply button clicked for message:', message.id);
+                                      setReplyingToMessage(replyingToMessage === message.id ? null : message.id);
+                                      if (replyingToMessage !== message.id) {
+                                        replyForm.setValue('senderName', project.clientName || '');
+                                      }
+                                    }}
+                                    className="text-xs h-6 px-2"
                                   >
-                                    Cancel
-                                  </Button>
-                                  <Button 
-                                    type="submit" 
-                                    size="sm"
-                                    disabled={sendReplyMutation.isPending}
-                                  >
-                                    {sendReplyMutation.isPending ? (
-                                      <>
-                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1" />
-                                        Sending...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Send className="mr-1 h-3 w-3" />
-                                        Send Reply
-                                      </>
-                                    )}
+                                    <Reply className="h-3 w-3 mr-1" />
+                                    Reply
                                   </Button>
                                 </div>
-                              </form>
-                            </Form>
+                              )}
+                              
+                              {/* Reply Form */}
+                              {replyingToMessage === message.id && (
+                                <div className="mt-3 border border-border rounded-lg p-3 bg-background">
+                                  <Form {...replyForm}>
+                                    <form 
+                                      onSubmit={replyForm.handleSubmit((data) => sendReplyMutation.mutate(data))} 
+                                      className="space-y-3"
+                                    >
+                                      <FormField
+                                        control={replyForm.control}
+                                        name="senderName"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormControl>
+                                              <input 
+                                                className="w-full p-2 text-xs border border-border rounded-lg focus:ring-1 focus:ring-primary"
+                                                placeholder="Your name"
+                                                {...field} 
+                                              />
+                                            </FormControl>
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={replyForm.control}
+                                        name="content"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormControl>
+                                              <Textarea 
+                                                placeholder="Type your reply..." 
+                                                rows={2}
+                                                className="text-xs"
+                                                {...field} 
+                                              />
+                                            </FormControl>
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <div className="flex justify-end space-x-2">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => setReplyingToMessage(null)}
+                                          className="h-7 px-3 text-xs"
+                                        >
+                                          Cancel
+                                        </Button>
+                                        <Button 
+                                          type="submit" 
+                                          size="sm"
+                                          disabled={sendReplyMutation.isPending}
+                                          className="h-7 px-3 text-xs"
+                                        >
+                                          {sendReplyMutation.isPending ? (
+                                            <>
+                                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1" />
+                                              Sending...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Send className="mr-1 h-3 w-3" />
+                                              Send
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    </form>
+                                  </Form>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {!isFromFreelancer && (
+                              <div className="w-8 h-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center flex-shrink-0">
+                                {message.senderName[0].toUpperCase()}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
                 
