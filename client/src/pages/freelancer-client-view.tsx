@@ -329,7 +329,7 @@ export default function FreelancerClientView() {
                           onSubmit={messageForm.handleSubmit((data) => 
                             sendMessageMutation.mutate({
                               ...data,
-                              senderName: user?.firstName || user?.email || 'Freelancer',
+                              senderName: (user as any)?.firstName || (user as any)?.email || 'Freelancer',
                             })
                           )} 
                           className="space-y-4"

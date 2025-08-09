@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Download, Send, Star, FileText, Clock, MessageSquare, CreditCard } from "lucide-react";
+import { Bell, Download, Send, Star, FileText, Clock, MessageSquare, CreditCard, Reply } from "lucide-react";
 import { format } from "date-fns";
 import type { z } from "zod";
 
@@ -30,6 +30,7 @@ export default function ClientPortal() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [feedbackRating, setFeedbackRating] = useState(0);
+  const [replyingToMessage, setReplyingToMessage] = useState<string | null>(null);
 
   const { data: portalData, isLoading } = useQuery<any>({
     queryKey: ["/api/client", shareToken],
@@ -50,6 +51,16 @@ export default function ClientPortal() {
     defaultValues: {
       clientName: "",
       comment: "",
+    },
+  });
+
+  // Reply form for individual messages
+  const replyForm = useForm<MessageFormData>({
+    resolver: zodResolver(insertMessageSchema.omit({ projectId: true })),
+    defaultValues: {
+      senderName: "",
+      senderType: "client",
+      content: "",
     },
   });
 
@@ -85,6 +96,31 @@ export default function ClientPortal() {
       toast({
         title: "Feedback submitted!",
         description: "Thank you for your feedback!",
+      });
+    },
+  });
+
+  const sendReplyMutation = useMutation({
+    mutationFn: async (data: MessageFormData) => {
+      const response = await apiRequest("POST", `/api/client/${shareToken}/messages`, {
+        ...data,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/client", shareToken] });
+      replyForm.reset();
+      setReplyingToMessage(null);
+      toast({
+        title: "Reply sent!",
+        description: "Your reply has been sent.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send reply. Please try again.",
+        variant: "destructive",
       });
     },
   });
@@ -439,26 +475,120 @@ export default function ClientPortal() {
                 ) : (
                   <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
                     {messages.map((message: any) => (
-                      <div key={message.id} className="flex space-x-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          message.senderType === 'freelancer' 
-                            ? 'bg-primary text-white' 
-                            : 'bg-secondary text-secondary-foreground'
-                        }`}>
-                          {message.senderName[0].toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-sm">{message.senderName}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {message.senderType === 'freelancer' ? 'Provider' : 'You'}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(message.createdAt), 'MMM dd, h:mm a')}
-                            </span>
+                      <div key={message.id} className="space-y-3">
+                        <div className="flex space-x-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            message.senderType === 'freelancer' 
+                              ? 'bg-primary text-white' 
+                              : 'bg-secondary text-secondary-foreground'
+                          }`}>
+                            {message.senderName[0].toUpperCase()}
                           </div>
-                          <p className="text-foreground mt-1 bg-secondary/50 rounded-lg p-3">{message.content}</p>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium text-sm">{message.senderName}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {message.senderType === 'freelancer' ? 'Provider' : 'You'}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(message.createdAt), 'MMM dd, h:mm a')}
+                                </span>
+                              </div>
+                              {message.senderType === 'freelancer' && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setReplyingToMessage(replyingToMessage === message.id ? null : message.id);
+                                    if (replyingToMessage !== message.id) {
+                                      replyForm.setValue('senderName', project.clientName || '');
+                                    }
+                                  }}
+                                  className="text-xs"
+                                >
+                                  <Reply className="h-3 w-3 mr-1" />
+                                  Reply
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-foreground mt-1 bg-secondary/50 rounded-lg p-3">{message.content}</p>
+                          </div>
                         </div>
+                        
+                        {/* Reply Form */}
+                        {replyingToMessage === message.id && (
+                          <div className="ml-11 border border-border rounded-lg p-4 bg-background">
+                            <h4 className="font-medium mb-3 text-sm">Reply to {message.senderName}</h4>
+                            <Form {...replyForm}>
+                              <form 
+                                onSubmit={replyForm.handleSubmit((data) => sendReplyMutation.mutate(data))} 
+                                className="space-y-3"
+                              >
+                                <FormField
+                                  control={replyForm.control}
+                                  name="senderName"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-xs">Your Name</FormLabel>
+                                      <FormControl>
+                                        <input 
+                                          className="w-full p-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-primary"
+                                          placeholder="Enter your name"
+                                          {...field} 
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={replyForm.control}
+                                  name="content"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-xs">Reply</FormLabel>
+                                      <FormControl>
+                                        <Textarea 
+                                          placeholder="Type your reply..." 
+                                          rows={3}
+                                          className="text-sm"
+                                          {...field} 
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <div className="flex justify-end space-x-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setReplyingToMessage(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button 
+                                    type="submit" 
+                                    size="sm"
+                                    disabled={sendReplyMutation.isPending}
+                                  >
+                                    {sendReplyMutation.isPending ? (
+                                      <>
+                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1" />
+                                        Sending...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Send className="mr-1 h-3 w-3" />
+                                        Send Reply
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              </form>
+                            </Form>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
