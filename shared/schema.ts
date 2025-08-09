@@ -86,11 +86,21 @@ export const accessLogs = pgTable("access_logs", {
 export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   projectId: varchar("project_id").notNull().references(() => projects.id),
+  parentMessageId: varchar("parent_message_id"), // For threading/replies
+  threadId: varchar("thread_id"), // For conversation grouping
   senderName: varchar("sender_name").notNull(),
   senderType: varchar("sender_type").notNull(), // freelancer, client
+  messageType: varchar("message_type").notNull().default("text"), // text, file, system, notification
   content: text("content").notNull(),
-  isRead: boolean("is_read").default(false),
+  priority: varchar("priority").notNull().default("normal"), // low, normal, high, urgent
+  status: varchar("status").notNull().default("sent"), // sent, delivered, read
+  isRead: boolean("is_read").default(false), // Keep for backward compatibility
+  deliveredAt: timestamp("delivered_at"),
+  readAt: timestamp("read_at"),
+  editedAt: timestamp("edited_at"),
+  metadata: text("metadata"), // JSON string for extensible data
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const invoices = pgTable("invoices", {
@@ -147,11 +157,16 @@ export const deliverablesRelations = relations(deliverables, ({ one }) => ({
   }),
 }));
 
-export const messagesRelations = relations(messages, ({ one }) => ({
+export const messagesRelations = relations(messages, ({ one, many }) => ({
   project: one(projects, {
     fields: [messages.projectId],
     references: [projects.id],
   }),
+  parentMessage: one(messages, {
+    fields: [messages.parentMessageId],
+    references: [messages.id],
+  }),
+  replies: many(messages),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one }) => ({
@@ -202,6 +217,10 @@ export const insertAccessLogSchema = createInsertSchema(accessLogs).omit({
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
+  deliveredAt: true,
+  readAt: true,
+  editedAt: true,
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({

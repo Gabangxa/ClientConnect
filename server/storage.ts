@@ -253,9 +253,29 @@ export class DatabaseStorage implements IStorage {
 
   // Message operations
   async createMessage(message: InsertMessage): Promise<Message> {
+    // Auto-generate threadId if not provided and no parent
+    if (!message.threadId && !message.parentMessageId) {
+      message.threadId = message.projectId + '-' + Date.now();
+    }
+    
+    // If replying to a message, inherit the threadId
+    if (message.parentMessageId && !message.threadId) {
+      const [parentMessage] = await db
+        .select({ threadId: messages.threadId })
+        .from(messages)
+        .where(eq(messages.id, message.parentMessageId));
+      
+      if (parentMessage?.threadId) {
+        message.threadId = parentMessage.threadId;
+      }
+    }
+    
     const [newMessage] = await db
       .insert(messages)
-      .values(message)
+      .values({
+        ...message,
+        deliveredAt: new Date(), // Mark as delivered immediately for now
+      })
       .returning();
     return newMessage;
   }
@@ -265,7 +285,32 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(messages)
       .where(eq(messages.projectId, projectId))
-      .orderBy(desc(messages.createdAt));
+      .orderBy(messages.createdAt); // Changed to ascending for chronological order
+  }
+
+  async getMessageThreads(projectId: string): Promise<any[]> {
+    // Get all messages grouped by thread with reply counts
+    const result = await db
+      .select({
+        threadId: messages.threadId,
+        latestMessage: {
+          id: messages.id,
+          content: messages.content,
+          senderName: messages.senderName,
+          senderType: messages.senderType,
+          createdAt: messages.createdAt,
+          status: messages.status,
+          priority: messages.priority,
+        },
+        replyCount: sql<number>`COUNT(CASE WHEN ${messages.parentMessageId} IS NOT NULL THEN 1 END)`,
+        totalMessages: sql<number>`COUNT(*)`,
+      })
+      .from(messages)
+      .where(eq(messages.projectId, projectId))
+      .groupBy(messages.threadId)
+      .orderBy(desc(sql`MAX(${messages.createdAt})`));
+    
+    return result;
   }
 
   async getRecentMessagesForFreelancer(freelancerId: string): Promise<any[]> {
@@ -293,16 +338,56 @@ export class DatabaseStorage implements IStorage {
       .limit(10);
   }
 
-  async markMessagesAsRead(projectId: string, senderType: string): Promise<void> {
+  async markMessagesAsRead(projectId: string, senderType: string, userId?: string): Promise<void> {
+    const readTimestamp = new Date();
     await db
       .update(messages)
-      .set({ isRead: true })
+      .set({ 
+        isRead: true,
+        readAt: readTimestamp,
+        status: 'read'
+      })
       .where(
         and(
           eq(messages.projectId, projectId),
           eq(messages.senderType, senderType)
         )
       );
+  }
+
+  async markMessageAsRead(messageId: string): Promise<void> {
+    const readTimestamp = new Date();
+    await db
+      .update(messages)
+      .set({ 
+        isRead: true,
+        readAt: readTimestamp,
+        status: 'read'
+      })
+      .where(eq(messages.id, messageId));
+  }
+
+  async getUnreadMessageCount(projectId: string, forSenderType: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.projectId, projectId),
+          eq(messages.senderType, forSenderType),
+          eq(messages.isRead, false)
+        )
+      );
+    
+    return result[0]?.count || 0;
+  }
+
+  async getMessageThread(threadId: string): Promise<Message[]> {
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.threadId, threadId))
+      .orderBy(messages.createdAt);
   }
 
   // Invoice operations

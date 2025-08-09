@@ -340,9 +340,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const messageData = insertMessageSchema.parse({
         projectId,
+        parentMessageId: req.body.parentMessageId || null,
+        threadId: req.body.threadId || null,
         senderName: user?.firstName || user?.email || 'Freelancer',
         senderType: 'freelancer',
+        messageType: req.body.messageType || 'text',
         content: req.body.content,
+        priority: req.body.priority || 'normal',
+        status: 'sent',
         isRead: false,
       });
 
@@ -373,9 +378,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const messageData = insertMessageSchema.parse({
         projectId: project.id,
+        parentMessageId: req.body.parentMessageId || null,
+        threadId: req.body.threadId || null,
         senderName: req.body.senderName || project.clientName,
         senderType: 'client',
+        messageType: req.body.messageType || 'text',
         content: req.body.content,
+        priority: req.body.priority || 'normal',
+        status: 'sent',
         isRead: false,
       });
 
@@ -395,6 +405,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching client messages:", error);
       res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Mark message as read
+  app.patch('/api/projects/:projectId/messages/:messageId/read', isAuthenticated, withProjectAccess('freelancer'), async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      await storage.markMessageAsRead(messageId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  app.patch('/api/client/:shareToken/messages/:messageId/read', withProjectAccess('client'), async (req: any, res) => {
+    try {
+      const { messageId } = req.params;
+      await storage.markMessageAsRead(messageId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      res.status(500).json({ message: "Failed to mark message as read" });
     }
   });
 

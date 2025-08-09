@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Download, Send, Star, FileText, Clock, MessageSquare, CreditCard, Reply } from "lucide-react";
+import { MessageThread } from "@/components/messaging/message-thread";
 import { format } from "date-fns";
 import type { z } from "zod";
 
@@ -30,20 +31,11 @@ export default function ClientPortal() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [feedbackRating, setFeedbackRating] = useState(0);
-  const [replyingToMessage, setReplyingToMessage] = useState<string | null>(null);
+  // Removed replyingToMessage state - now handled by MessageThread component
 
   const { data: portalData, isLoading } = useQuery<any>({
     queryKey: ["/api/client", shareToken],
     enabled: !!shareToken,
-  });
-
-  const messageForm = useForm<MessageFormData>({
-    resolver: zodResolver(insertMessageSchema.omit({ projectId: true })),
-    defaultValues: {
-      senderName: "",
-      senderType: "client",
-      content: "",
-    },
   });
 
   const feedbackForm = useForm<FeedbackFormData>({
@@ -51,16 +43,6 @@ export default function ClientPortal() {
     defaultValues: {
       clientName: "",
       comment: "",
-    },
-  });
-
-  // Reply form for individual messages
-  const replyForm = useForm<MessageFormData>({
-    resolver: zodResolver(insertMessageSchema.omit({ projectId: true })),
-    defaultValues: {
-      senderName: "",
-      senderType: "client",
-      content: "",
     },
   });
 
@@ -73,7 +55,6 @@ export default function ClientPortal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/client", shareToken] });
-      messageForm.reset();
       toast({
         title: "Message sent!",
         description: "Your message has been sent to the freelancer.",
@@ -474,199 +455,25 @@ export default function ClientPortal() {
                 <CardDescription>Stay in touch with your service provider</CardDescription>
               </CardHeader>
               <CardContent>
-                {messages.length === 0 ? (
-                  <div className="text-center py-8">
-                    <MessageSquare className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                    <p className="text-muted-foreground">No messages yet</p>
-                    <p className="text-sm text-muted-foreground mt-1">Start the conversation below</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6 mb-6 max-h-96 overflow-y-auto">
-                    {messages.map((message: any, index: number) => {
-                      const isFromFreelancer = message.senderType === 'freelancer';
-                      const nextMessage = messages[index + 1];
-                      const isFollowUp = nextMessage && 
-                        nextMessage.senderType === message.senderType && 
-                        nextMessage.senderName === message.senderName &&
-                        new Date(nextMessage.createdAt).getTime() - new Date(message.createdAt).getTime() < 300000; // 5 minutes
-                      
-                      return (
-                        <div key={message.id} className={`${isFromFreelancer ? 'mr-8' : 'ml-8'}`}>
-                          <div className={`flex ${isFromFreelancer ? 'justify-start' : 'justify-end'} space-x-3`}>
-                            {isFromFreelancer && (
-                              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
-                                {message.senderName[0].toUpperCase()}
-                              </div>
-                            )}
-                            
-                            <div className={`max-w-[70%] ${isFromFreelancer ? '' : 'order-2'}`}>
-                              <div className={`flex items-center space-x-2 mb-1 ${isFromFreelancer ? '' : 'justify-end'}`}>
-                                <span className="font-medium text-xs">{message.senderName}</span>
-                                <Badge variant={isFromFreelancer ? "default" : "secondary"} className="text-xs">
-                                  {isFromFreelancer ? 'Provider' : 'You'}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {format(new Date(message.createdAt), 'MMM dd, h:mm a')}
-                                </span>
-                              </div>
-                              
-                              <div className={`rounded-2xl p-3 ${
-                                isFromFreelancer 
-                                  ? 'bg-secondary text-foreground' 
-                                  : 'bg-primary text-primary-foreground'
-                              }`}>
-                                <p className="text-sm">{message.content}</p>
-                              </div>
-                              
-                              {isFromFreelancer && (
-                                <div className="flex justify-start mt-2">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => {
-                                      console.log('Reply button clicked for message:', message.id);
-                                      setReplyingToMessage(replyingToMessage === message.id ? null : message.id);
-                                      if (replyingToMessage !== message.id) {
-                                        replyForm.setValue('senderName', project.clientName || '');
-                                      }
-                                    }}
-                                    className="text-xs h-6 px-2"
-                                  >
-                                    <Reply className="h-3 w-3 mr-1" />
-                                    Reply
-                                  </Button>
-                                </div>
-                              )}
-                              
-                              {/* Reply Form */}
-                              {replyingToMessage === message.id && (
-                                <div className="mt-3 border border-border rounded-lg p-3 bg-background">
-                                  <Form {...replyForm}>
-                                    <form 
-                                      onSubmit={replyForm.handleSubmit((data) => sendReplyMutation.mutate(data))} 
-                                      className="space-y-3"
-                                    >
-                                      <FormField
-                                        control={replyForm.control}
-                                        name="senderName"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormControl>
-                                              <input 
-                                                className="w-full p-2 text-xs border border-border rounded-lg focus:ring-1 focus:ring-primary"
-                                                placeholder="Your name"
-                                                {...field} 
-                                              />
-                                            </FormControl>
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <FormField
-                                        control={replyForm.control}
-                                        name="content"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormControl>
-                                              <Textarea 
-                                                placeholder="Type your reply..." 
-                                                rows={2}
-                                                className="text-xs"
-                                                {...field} 
-                                              />
-                                            </FormControl>
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <div className="flex justify-end space-x-2">
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => setReplyingToMessage(null)}
-                                          className="h-7 px-3 text-xs"
-                                        >
-                                          Cancel
-                                        </Button>
-                                        <Button 
-                                          type="submit" 
-                                          size="sm"
-                                          disabled={sendReplyMutation.isPending}
-                                          className="h-7 px-3 text-xs"
-                                        >
-                                          {sendReplyMutation.isPending ? (
-                                            <>
-                                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1" />
-                                              Sending...
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Send className="mr-1 h-3 w-3" />
-                                              Send
-                                            </>
-                                          )}
-                                        </Button>
-                                      </div>
-                                    </form>
-                                  </Form>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {!isFromFreelancer && (
-                              <div className="w-8 h-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center flex-shrink-0">
-                                {message.senderName[0].toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                
-                <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3">Send a New Message</h4>
-                  <Form {...messageForm}>
-                    <form onSubmit={messageForm.handleSubmit((data) => sendMessageMutation.mutate(data))} className="space-y-4">
-                      <FormField
-                        control={messageForm.control}
-                        name="senderName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Your Name</FormLabel>
-                            <FormControl>
-                              <input 
-                                className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary"
-                                placeholder="Enter your name"
-                                {...field} 
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={messageForm.control}
-                        name="content"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Message</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Ask a question, request changes, or provide feedback..." 
-                                rows={4}
-                                {...field} 
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" disabled={sendMessageMutation.isPending} className="w-full">
-                        <Send className="mr-2 h-4 w-4" />
-                        Send Message
-                      </Button>
-                    </form>
-                  </Form>
-                </div>
+                <MessageThread
+                  messages={messages}
+                  currentUserType="client"
+                  currentUserName={project.clientName}
+                  onSendMessage={(data) => {
+                    sendMessageMutation.mutate({
+                      projectId: project.id,
+                      senderName: project.clientName || 'Client',
+                      senderType: 'client',
+                      content: data.content,
+                      parentMessageId: data.parentMessageId,
+                      threadId: data.threadId,
+                      messageType: data.messageType || 'text',
+                      priority: data.priority || 'normal',
+                      status: 'sent'
+                    });
+                  }}
+                  isLoading={sendMessageMutation.isPending}
+                />
               </CardContent>
             </Card>
           )}
