@@ -305,10 +305,10 @@ export default function FreelancerClientView() {
               <MessageThread
                 messages={messages}
                 currentUserType="freelancer"
-                currentUserName={user ? ((user as any)?.firstName || (user as any)?.email || 'Freelancer') : 'Freelancer'}
+                currentUserName={user ? ((user as any)?.firstName || (user as any)?.email || 'Freelancer') : 'Freelancer' as string}
                 onSendMessage={(data) => {
                   sendMessageMutation.mutate({
-                    projectId,
+                    projectId: projectId!,
                     senderName: user ? ((user as any)?.firstName || (user as any)?.email || 'Freelancer') : 'Freelancer',
                     senderType: 'freelancer',
                     content: data.content,

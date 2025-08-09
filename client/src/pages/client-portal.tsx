@@ -13,8 +13,7 @@ import { ActivityTimeline } from "@/components/activity-timeline";
 import { FileUpload } from "@/components/file-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
+// Removed unused Form imports - now using unified MessageThread component
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Download, Send, Star, FileText, Clock, MessageSquare, CreditCard, Reply } from "lucide-react";
@@ -81,30 +80,7 @@ export default function ClientPortal() {
     },
   });
 
-  const sendReplyMutation = useMutation({
-    mutationFn: async (data: MessageFormData) => {
-      const response = await apiRequest("POST", `/api/client/${shareToken}/messages`, {
-        ...data,
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/client", shareToken] });
-      replyForm.reset();
-      setReplyingToMessage(null);
-      toast({
-        title: "Reply sent!",
-        description: "Your reply has been sent.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to send reply. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
+  // Removed sendReplyMutation - now using unified MessageThread component
 
   if (isLoading) {
     return (
@@ -209,58 +185,29 @@ export default function ClientPortal() {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Quick Message */}
+                  {/* Quick Message Navigation */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Send a Message</CardTitle>
-                      <CardDescription>Get in touch with your service provider</CardDescription>
+                      <CardTitle>Messages</CardTitle>
+                      <CardDescription>Communicate with your service provider</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Form {...messageForm}>
-                        <form onSubmit={messageForm.handleSubmit((data) => sendMessageMutation.mutate(data))} className="space-y-4">
-                          <FormField
-                            control={messageForm.control}
-                            name="senderName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Your Name</FormLabel>
-                                <FormControl>
-                                  <input 
-                                    className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                                    placeholder="Enter your name"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={messageForm.control}
-                            name="content"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Ask a question or share an update..." 
-                                    rows={3}
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <Button 
-                            type="submit" 
-                            className="w-full"
-                            disabled={sendMessageMutation.isPending}
-                          >
-                            <Send className="mr-2 h-4 w-4" />
-                            Send Message
-                          </Button>
-                        </form>
-                      </Form>
+                      <div className="text-center py-4">
+                        <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {messages.length > 0 
+                            ? `${messages.length} message${messages.length === 1 ? '' : 's'}`
+                            : 'No messages yet'
+                          }
+                        </p>
+                        <Button 
+                          onClick={() => setActiveTab('messages')}
+                          className="w-full"
+                        >
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          {messages.length > 0 ? 'View Messages' : 'Start Conversation'}
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
 
