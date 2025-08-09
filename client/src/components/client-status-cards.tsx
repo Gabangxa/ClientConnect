@@ -8,9 +8,10 @@ interface ClientStatusCardsProps {
   filesShared: number;
   unreadMessages: number;
   nextPayment: any;
+  onNavigateToMessages?: () => void;
 }
 
-export function ClientStatusCards({ project, filesShared, unreadMessages, nextPayment }: ClientStatusCardsProps) {
+export function ClientStatusCards({ project, filesShared, unreadMessages, nextPayment, onNavigateToMessages }: ClientStatusCardsProps) {
   const progress = project.progress || 0;
   
   return (
@@ -50,7 +51,13 @@ export function ClientStatusCards({ project, filesShared, unreadMessages, nextPa
       </Card>
 
       {/* Messages */}
-      <Card>
+      <Card 
+        className="cursor-pointer hover:bg-accent/50 transition-colors"
+        onClick={() => {
+          console.log('Messages card clicked, navigating to messages');
+          onNavigateToMessages?.();
+        }}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Messages</CardTitle>
           <MessageSquare className="h-4 w-4 text-muted-foreground" />

@@ -7,9 +7,10 @@ interface ClientHeaderProps {
   project: any;
   unreadMessages: number;
   shareToken: string;
+  onNavigateToMessages?: () => void;
 }
 
-export function ClientHeader({ project, unreadMessages, shareToken }: ClientHeaderProps) {
+export function ClientHeader({ project, unreadMessages, shareToken, onNavigateToMessages }: ClientHeaderProps) {
   const handleShareLink = () => {
     const currentUrl = window.location.href;
     navigator.clipboard.writeText(currentUrl);
@@ -39,7 +40,14 @@ export function ClientHeader({ project, unreadMessages, shareToken }: ClientHead
         <div className="flex items-center space-x-3">
           {/* Notifications */}
           <div className="relative">
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                console.log('Bell icon clicked, navigating to messages');
+                onNavigateToMessages?.();
+              }}
+            >
               <Bell className="h-4 w-4" />
               {unreadMessages > 0 && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">

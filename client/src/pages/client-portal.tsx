@@ -201,6 +201,10 @@ export default function ClientPortal() {
           project={project}
           unreadMessages={unreadMessages}
           shareToken={shareToken || ''}
+          onNavigateToMessages={() => {
+            console.log('Navigating to messages tab');
+            setActiveTab('messages');
+          }}
         />
 
         {/* Main Content */}
@@ -212,6 +216,10 @@ export default function ClientPortal() {
                 filesShared={filesShared}
                 unreadMessages={unreadMessages}
                 nextPayment={nextPayment}
+                onNavigateToMessages={() => {
+                  console.log('Navigating to messages tab from status card');
+                  setActiveTab('messages');
+                }}
               />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
