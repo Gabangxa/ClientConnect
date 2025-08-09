@@ -500,10 +500,13 @@ export default function ClientPortal() {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => {
+                                    console.log('Reply button clicked for message:', message.id);
+                                    console.log('Current replyingToMessage:', replyingToMessage);
                                     setReplyingToMessage(replyingToMessage === message.id ? null : message.id);
                                     if (replyingToMessage !== message.id) {
                                       replyForm.setValue('senderName', project.clientName || '');
                                     }
+                                    console.log('New replyingToMessage will be:', replyingToMessage === message.id ? null : message.id);
                                   }}
                                   className="text-xs"
                                 >
