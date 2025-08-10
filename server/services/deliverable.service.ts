@@ -5,7 +5,6 @@ import {
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, desc } from "drizzle-orm";
-import { JobService } from '../workers';
 
 export class DeliverableService {
   async createDeliverable(deliverable: InsertDeliverable): Promise<Deliverable> {
@@ -13,32 +12,6 @@ export class DeliverableService {
       .insert(deliverables)
       .values(deliverable)
       .returning();
-    
-    // Queue background jobs for new deliverable
-    try {
-      // Generate thumbnail if it's an image/video/PDF
-      const supportedMimeTypes = ['image/', 'video/', 'application/pdf'];
-      if (newDeliverable.fileType && supportedMimeTypes.some(type => newDeliverable.fileType!.startsWith(type))) {
-        await JobService.addThumbnailJob({
-          fileKey: newDeliverable.filePath,
-          originalFilename: newDeliverable.filename,
-          projectId: newDeliverable.projectId,
-          mimeType: newDeliverable.fileType
-        });
-      }
-      
-      // Send email notification to client (would need client email from project)
-      // await JobService.addEmailJob({
-      //   type: 'deliverable-uploaded',
-      //   recipientEmail: 'client@example.com', // TODO: Get from project
-      //   projectId: newDeliverable.projectId,
-      //   data: { filename: newDeliverable.filename }
-      // });
-    } catch (error) {
-      // Don't fail deliverable creation if background jobs fail
-      console.warn('Failed to queue background jobs for deliverable:', error);
-    }
-    
     return newDeliverable;
   }
 

@@ -1,19 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError, AnyZodObject } from 'zod';
-
-// Enhanced validation middleware for complete request validation
-export const validateRequest = (schema: AnyZodObject) => (req: Request, res: Response, next: NextFunction) => {
-  try {
-    schema.parse({ body: req.body, params: req.params, query: req.query });
-    next();
-  } catch (err: any) {
-    res.status(400).json({ 
-      success: false, 
-      message: "Validation error",
-      errors: err.errors 
-    });
-  }
-};
+import { ZodSchema, ZodError } from 'zod';
 
 // Generic validation middleware for request body
 export const validateBody = (schema: ZodSchema) => {
@@ -24,7 +10,6 @@ export const validateBody = (schema: ZodSchema) => {
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({
-          success: false,
           message: "Validation error",
           errors: error.errors.map(err => ({
             field: err.path.join('.'),

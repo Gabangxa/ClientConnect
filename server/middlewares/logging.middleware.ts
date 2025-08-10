@@ -1,103 +1,67 @@
 import { Request, Response, NextFunction } from 'express';
-import pino from 'pino';
-import rateLimit from 'express-rate-limit';
 
-// Initialize pino logger
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  transport: process.env.NODE_ENV === 'development' ? {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'SYS:standard'
-    }
-  } : undefined
-});
-
-// Request logging middleware with pino
+// Request logging middleware
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
+  
+  // Log request start
+  console.log(`${new Date().toISOString()} [${req.method}] ${req.path} - Started`);
   
   // Capture original end function
   const originalEnd = res.end;
   
   // Override end function to log completion
-  res.end = function(chunk?: any, encoding?: any): Response {
+  res.end = function(chunk?: any, encoding?: any) {
     const duration = Date.now() - start;
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     
-    const logData: Record<string, any> = {
-      method: req.method,
-      path: req.path,
-      statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      ip: req.ip,
-      userAgent: req.get('User-Agent')
-    };
+    // Prepare log message
+    const logMessage = `${timestamp} [express] ${req.method} ${req.path} ${res.statusCode} in ${duration}ms`;
     
-    // Add error info for failed requests
-    if (res.statusCode >= 400 && chunk) {
-      logData.error = chunk.toString().substring(0, 100);
-    }
-    
-    if (res.statusCode >= 500) {
-      logger.error(logData, 'Server error');
-    } else if (res.statusCode >= 400) {
-      logger.warn(logData, 'Client error');
+    // Add additional info for specific status codes
+    if (res.statusCode >= 400) {
+      const errorInfo = chunk ? ` :: ${chunk.toString().substring(0, 100)}` : '';
+      console.log(`${logMessage}${errorInfo}`);
     } else {
-      logger.info(logData, 'Request completed');
+      console.log(logMessage);
     }
     
-    // Call original end function and return its result
-    return originalEnd.call(this, chunk, encoding);
+    // Call original end function
+    originalEnd.call(this, chunk, encoding);
   };
   
   next();
 };
 
-// Export logger for use in other modules
-export { logger };
+// Rate limiting middleware (basic implementation)
+const requestCounts = new Map();
+const WINDOW_SIZE = 60 * 1000; // 1 minute
+const MAX_REQUESTS = 100; // per window per IP
 
-// Production-ready rate limiting middleware
-export const rateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: {
-    message: "Too many requests from this IP, please try again later.",
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  handler: (req, res) => {
-    logger.warn({
-      ip: req.ip,
-      path: req.path,
-      method: req.method,
-    }, 'Rate limit exceeded');
-    
-    res.status(429).json({
-      message: "Too many requests from this IP, please try again later.",
+export const rateLimiter = (req: Request, res: Response, next: NextFunction) => {
+  const ip = req.ip || 'unknown';
+  const now = Date.now();
+  
+  if (!requestCounts.has(ip)) {
+    requestCounts.set(ip, []);
+  }
+  
+  const requests = requestCounts.get(ip);
+  
+  // Remove old requests outside the window
+  while (requests.length > 0 && requests[0] < now - WINDOW_SIZE) {
+    requests.shift();
+  }
+  
+  // Check if limit exceeded
+  if (requests.length >= MAX_REQUESTS) {
+    return res.status(429).json({
+      message: "Too many requests. Please try again later.",
     });
   }
-});
-
-// Stricter rate limiting for authentication routes
-export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 auth requests per windowMs
-  message: "Too many authentication attempts, please try again later.",
-  skipSuccessfulRequests: true,
-  handler: (req, res) => {
-    logger.warn({
-      ip: req.ip,
-      path: req.path,
-      method: req.method,
-    }, 'Auth rate limit exceeded');
-    
-    res.status(429).json({
-      success: false,
-      message: "Too many authentication attempts, please try again later.",
-    });
-  }
-});
-
-// Alias for consistency with boilerplate patterns
-export const loginRateLimiter = authRateLimiter;
+  
+  // Add current request
+  requests.push(now);
+  
+  next();
+};

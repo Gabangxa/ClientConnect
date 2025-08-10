@@ -14,16 +14,12 @@ import {
   messageController,
   invoiceController,
   feedbackController,
-  uploadController,
-  jobsController,
 } from "./controllers";
 
 import {
   withProjectAccess,
   errorHandler,
   notFoundHandler,
-  rateLimiter,
-  authRateLimiter,
 } from "./middlewares";
 
 // Configure multer for file uploads
@@ -43,12 +39,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
   await setupAuth(app);
 
-  // Apply rate limiting globally
-  app.use(rateLimiter);
-
-  // Authentication routes with stricter rate limiting
-  app.get("/api/auth/user", authRateLimiter, authController.getCurrentUser);
-  app.post("/api/auth/logout", authRateLimiter, authController.logout);
+  // Authentication routes
+  app.get("/api/auth/user", authController.getCurrentUser);
+  app.post("/api/auth/logout", authController.logout);
 
   // Freelancer routes (authenticated)
   app.post("/api/projects", isAuthenticated, projectController.createProject);
@@ -79,17 +72,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/:projectId/feedback", isAuthenticated, withProjectAccess('freelancer'), feedbackController.getFeedback);
   app.get("/api/projects/:projectId/feedback/stats", isAuthenticated, withProjectAccess('freelancer'), feedbackController.getFeedbackStats);
 
-  // Modern S3 upload routes (freelancer)
-  app.post("/api/upload/signed-url", isAuthenticated, uploadController.generateUploadUrl);
-  app.post("/api/upload/confirm", isAuthenticated, uploadController.confirmUpload);
-  app.get("/api/download/:key", isAuthenticated, uploadController.generateDownloadUrl);
-
-  // Background job management routes (freelancer only)
-  app.get("/api/jobs/stats", isAuthenticated, jobsController.getQueueStats);
-  app.post("/api/jobs/thumbnail", isAuthenticated, jobsController.createThumbnailJob);
-  app.post("/api/jobs/email", isAuthenticated, jobsController.createEmailJob);
-  app.post("/api/jobs/cleanup", isAuthenticated, jobsController.createCleanupJob);
-
   // Client portal routes (token-based access)
   app.get("/api/client/:shareToken", withProjectAccess('client'), clientController.getClientPortalData);
   app.post("/api/client/:shareToken/messages", withProjectAccess('client'), clientController.sendMessage);
@@ -116,8 +98,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Error handling only for API routes - don't interfere with frontend serving
-  app.use('/api', notFoundHandler);
+  // Error handling
+  app.use(notFoundHandler);
   app.use(errorHandler);
 
   return server;
