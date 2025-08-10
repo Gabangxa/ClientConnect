@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 // Removed unused Form imports - now using unified MessageThread component
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Download, Send, Star, FileText, Clock, MessageSquare, CreditCard, Reply } from "lucide-react";
+import { Bell, Download, Send, Star, FileText, Clock, MessageSquare, CreditCard, Reply, Trash2 } from "lucide-react";
 import { MessageThread } from "@/components/messaging/message-thread";
 import { format } from "date-fns";
 import type { z } from "zod";
@@ -80,7 +80,27 @@ export default function ClientPortal() {
     },
   });
 
-  // Removed sendReplyMutation - now using unified MessageThread component
+  // Delete deliverable mutation for client uploads
+  const deleteDeliverableMutation = useMutation({
+    mutationFn: async (deliverableId: string) => {
+      const response = await apiRequest("DELETE", `/api/client/${shareToken}/deliverables/${deliverableId}`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/client", shareToken] });
+      toast({
+        title: "File deleted!",
+        description: "Your uploaded file has been removed.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete failed",
+        description: error.message || "Could not delete the file. You can only delete files you uploaded.",
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -378,9 +398,24 @@ export default function ClientPortal() {
                                     </p>
                                   </div>
                                 </div>
-                                <Button size="sm" variant="ghost" className="text-muted-foreground">
-                                  <Download className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center space-x-2">
+                                  <Button size="sm" variant="ghost" className="text-muted-foreground">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => {
+                                      if (window.confirm(`Delete "${file.fileName || file.title}"? This action cannot be undone.`)) {
+                                        deleteDeliverableMutation.mutate(file.id);
+                                      }
+                                    }}
+                                    disabled={deleteDeliverableMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           ))}
