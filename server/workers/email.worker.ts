@@ -3,7 +3,7 @@ import { logger } from '../middlewares/logging.middleware';
 
 const connection = { connection: { url: process.env.REDIS_URL || 'redis://localhost:6379' } };
 
-const emailWorker = new Worker("email-notifications", async (job) => {
+const emailWorker = process.env.REDIS_URL ? new Worker("email-notifications", async (job) => {
   console.log("Processing email notification:", job.data.type);
   
   try {
@@ -51,14 +51,16 @@ const emailWorker = new Worker("email-notifications", async (job) => {
     logger.error({ error, jobData: job.data }, 'Email notification failed');
     throw error;
   }
-}, connection);
+}, connection) : null;
 
-emailWorker.on('completed', (job) => {
-  logger.info({ jobId: job.id }, 'Email notification completed');
-});
+if (emailWorker) {
+  emailWorker.on('completed', (job) => {
+    logger.info({ jobId: job.id }, 'Email notification completed');
+  });
 
-emailWorker.on('failed', (job, err) => {
-  logger.error({ jobId: job?.id, error: err.message }, 'Email notification failed');
-});
+  emailWorker.on('failed', (job, err) => {
+    logger.error({ jobId: job?.id, error: err.message }, 'Email notification failed');
+  });
+}
 
 export default emailWorker;

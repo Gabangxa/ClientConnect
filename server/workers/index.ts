@@ -8,10 +8,10 @@ import cleanupWorker from './cleanup.worker';
 
 const connection = { connection: { url: process.env.REDIS_URL || 'redis://localhost:6379' } };
 
-// Create queues for different job types
-export const thumbnailQueue = new Queue("thumbnails", connection);
-export const emailQueue = new Queue("email-notifications", connection);
-export const cleanupQueue = new Queue("cleanup-tasks", connection);
+// Create queues for different job types (only if Redis is available)
+export const thumbnailQueue = process.env.REDIS_URL ? new Queue("thumbnails", connection) : null;
+export const emailQueue = process.env.REDIS_URL ? new Queue("email-notifications", connection) : null;
+export const cleanupQueue = process.env.REDIS_URL ? new Queue("cleanup-tasks", connection) : null;
 
 // Job creation utilities following your pattern
 export class JobService {
@@ -22,6 +22,11 @@ export class JobService {
     projectId: string;
     mimeType: string;
   }) {
+    if (!thumbnailQueue) {
+      logger.warn('Thumbnail queue not available - Redis not configured');
+      return null;
+    }
+    
     try {
       const job = await thumbnailQueue.add("generate-thumbnail", data, {
         attempts: 3,
@@ -46,6 +51,11 @@ export class JobService {
     projectId: string;
     data?: any;
   }) {
+    if (!emailQueue) {
+      logger.warn('Email queue not available - Redis not configured');
+      return null;
+    }
+    
     try {
       const job = await emailQueue.add("send-notification", data, {
         attempts: 3,
@@ -69,6 +79,11 @@ export class JobService {
     task: 'expire-tokens' | 'delete-temp-files' | 'archive-old-data' | 'optimize-storage' | 'generate-analytics';
     data?: any;
   }) {
+    if (!cleanupQueue) {
+      logger.warn('Cleanup queue not available - Redis not configured');
+      return null;
+    }
+    
     try {
       const job = await cleanupQueue.add("cleanup-task", data, {
         attempts: 2,
@@ -85,6 +100,16 @@ export class JobService {
 
   // Get queue statistics
   static async getQueueStats() {
+    if (!thumbnailQueue || !emailQueue || !cleanupQueue) {
+      return {
+        error: 'Queues not available - Redis not configured',
+        thumbnails: { waiting: 0, active: 0, completed: 0, failed: 0 },
+        emails: { waiting: 0, active: 0, completed: 0, failed: 0 },
+        cleanup: { waiting: 0, active: 0, completed: 0, failed: 0 },
+        total: { waiting: 0, active: 0, completed: 0, failed: 0 }
+      };
+    }
+    
     try {
       const [thumbnailStats, emailStats, cleanupStats] = await Promise.all([
         thumbnailQueue.getJobCounts(),
@@ -147,15 +172,22 @@ export class JobService {
   }
 }
 
-// Initialize workers and scheduling only in production or when enabled
-if (process.env.NODE_ENV === 'production' || process.env.ENABLE_WORKERS === 'true') {
+// Initialize workers and scheduling only when Redis is available and workers are enabled
+const shouldEnableWorkers = (process.env.NODE_ENV === 'production' || process.env.ENABLE_WORKERS === 'true') && process.env.REDIS_URL;
+
+if (shouldEnableWorkers) {
   // Workers are automatically initialized when imported
   logger.info('Background workers initialized', {
-    workers: ['thumbnails', 'email-notifications', 'cleanup-tasks']
+    workers: ['thumbnails', 'email-notifications', 'cleanup-tasks'],
+    redisUrl: process.env.REDIS_URL
   });
 
   // Schedule recurring jobs
   JobService.scheduleRecurringJobs();
+} else {
+  logger.info('Background workers disabled', {
+    reason: process.env.REDIS_URL ? 'ENABLE_WORKERS not set' : 'REDIS_URL not configured'
+  });
 }
 
 // Graceful shutdown

@@ -3,7 +3,7 @@ import { logger } from '../middlewares/logging.middleware';
 
 const connection = { connection: { url: process.env.REDIS_URL || 'redis://localhost:6379' } };
 
-const cleanupWorker = new Worker("cleanup-tasks", async (job) => {
+const cleanupWorker = process.env.REDIS_URL ? new Worker("cleanup-tasks", async (job) => {
   console.log("Processing cleanup task:", job.data.task);
   
   try {
@@ -54,14 +54,16 @@ const cleanupWorker = new Worker("cleanup-tasks", async (job) => {
     logger.error({ error, jobData: job.data }, 'Cleanup task failed');
     throw error;
   }
-}, connection);
+}, connection) : null;
 
-cleanupWorker.on('completed', (job) => {
-  logger.info({ jobId: job.id }, 'Cleanup task completed');
-});
+if (cleanupWorker) {
+  cleanupWorker.on('completed', (job) => {
+    logger.info({ jobId: job.id }, 'Cleanup task completed');
+  });
 
-cleanupWorker.on('failed', (job, err) => {
-  logger.error({ jobId: job?.id, error: err.message }, 'Cleanup task failed');
-});
+  cleanupWorker.on('failed', (job, err) => {
+    logger.error({ jobId: job?.id, error: err.message }, 'Cleanup task failed');
+  });
+}
 
 export default cleanupWorker;

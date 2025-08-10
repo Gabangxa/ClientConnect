@@ -1,9 +1,15 @@
 import { Worker } from "bullmq";
 import { logger } from '../middlewares/logging.middleware';
 
+// Only create worker if Redis is configured
+if (!process.env.REDIS_URL) {
+  logger.warn('REDIS_URL not configured - thumbnail worker disabled');
+}
+
 const connection = { connection: { url: process.env.REDIS_URL || 'redis://localhost:6379' } };
 
-const thumbnailWorker = new Worker("thumbnails", async (job) => {
+// Create worker only if Redis is available
+const thumbnailWorker = process.env.REDIS_URL ? new Worker("thumbnails", async (job) => {
   console.log("Processing thumbnail for file:", job.data.fileKey);
   
   try {
@@ -38,14 +44,16 @@ const thumbnailWorker = new Worker("thumbnails", async (job) => {
     logger.error({ error, jobData: job.data }, 'Thumbnail generation failed');
     throw error;
   }
-}, connection);
+}, connection) : null;
 
-thumbnailWorker.on('completed', (job) => {
-  logger.info({ jobId: job.id }, 'Thumbnail job completed');
-});
+if (thumbnailWorker) {
+  thumbnailWorker.on('completed', (job) => {
+    logger.info({ jobId: job.id }, 'Thumbnail job completed');
+  });
 
-thumbnailWorker.on('failed', (job, err) => {
-  logger.error({ jobId: job?.id, error: err.message }, 'Thumbnail job failed');
-});
+  thumbnailWorker.on('failed', (job, err) => {
+    logger.error({ jobId: job?.id, error: err.message }, 'Thumbnail job failed');
+  });
+}
 
 export default thumbnailWorker;
