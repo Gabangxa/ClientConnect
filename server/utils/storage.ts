@@ -36,7 +36,7 @@ const maxFileSize = 10 * 1024 * 1024; // 10MB
 // S3 upload configuration (for future use)
 export const s3Upload = multer({
   storage: multerS3({
-    s3: s3,
+    s3: s3 as any, // Type compatibility for AWS SDK v2
     bucket: bucketName,
     metadata: (req: Request, file: Express.Multer.File, cb: (error: any, metadata?: any) => void) => {
       cb(null, {

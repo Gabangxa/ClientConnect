@@ -17,11 +17,11 @@ export interface TokenPayload {
 export class JWTService {
   static generateToken(payload: Omit<TokenPayload, 'iat' | 'exp'>): string {
     try {
-      return jwt.sign(payload, JWT_SECRET, { 
-        expiresIn: JWT_EXPIRES_IN,
+      return jwt.sign(payload, JWT_SECRET, {
+        expiresIn: JWT_EXPIRES_IN as string,
         issuer: 'client-portal',
         audience: 'client-portal-users'
-      });
+      } as jwt.SignOptions);
     } catch (error) {
       logger.error({ error }, 'Failed to generate JWT token');
       throw new Error('Token generation failed');
@@ -49,7 +49,7 @@ export class JWTService {
         type: 'share-token'
       };
       
-      return jwt.sign(payload, JWT_SECRET, { 
+      return jwt.sign(payload, JWT_SECRET, {
         expiresIn: '90d', // 90 days for share tokens
         issuer: 'client-portal',
         audience: 'client-portal-share'

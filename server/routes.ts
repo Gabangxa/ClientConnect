@@ -103,8 +103,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Error handling
-  app.use(notFoundHandler);
+  // Error handling only for API routes - don't interfere with frontend serving
+  app.use('/api', notFoundHandler);
   app.use(errorHandler);
 
   return server;

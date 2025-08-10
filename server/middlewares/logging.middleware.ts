@@ -22,10 +22,10 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   const originalEnd = res.end;
   
   // Override end function to log completion
-  res.end = function(chunk?: any, encoding?: any) {
+  res.end = function(chunk?: any, encoding?: any): Response {
     const duration = Date.now() - start;
     
-    const logData = {
+    const logData: Record<string, any> = {
       method: req.method,
       path: req.path,
       statusCode: res.statusCode,
@@ -47,8 +47,8 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
       logger.info(logData, 'Request completed');
     }
     
-    // Call original end function
-    originalEnd.call(this, chunk, encoding);
+    // Call original end function and return its result
+    return originalEnd.call(this, chunk, encoding);
   };
   
   next();
@@ -83,8 +83,21 @@ export const rateLimiter = rateLimit({
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 auth requests per windowMs
-  message: {
-    message: "Too many authentication attempts, please try again later.",
-  },
+  message: "Too many authentication attempts, please try again later.",
   skipSuccessfulRequests: true,
+  handler: (req, res) => {
+    logger.warn({
+      ip: req.ip,
+      path: req.path,
+      method: req.method,
+    }, 'Auth rate limit exceeded');
+    
+    res.status(429).json({
+      success: false,
+      message: "Too many authentication attempts, please try again later.",
+    });
+  }
 });
+
+// Alias for consistency with boilerplate patterns
+export const loginRateLimiter = authRateLimiter;

@@ -10,7 +10,7 @@ export function initSentry() {
       tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
       profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
       integrations: [
-        Sentry.httpIntegration({ tracing: true }),
+        Sentry.httpIntegration(),
         Sentry.expressIntegration(),
       ],
     });
