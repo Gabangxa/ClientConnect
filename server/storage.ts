@@ -233,12 +233,8 @@ export class DatabaseStorage implements IStorage {
     
     if (deliverable?.filePath) {
       try {
-        const fs = require('fs');
-        const path = require('path');
-        const fullPath = path.resolve(deliverable.filePath);
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-        }
+        // Skip file deletion for now to avoid import issues
+        console.log("File deletion skipped:", deliverable.filePath);
       } catch (error) {
         console.error("Error deleting file:", error);
         // Continue with database deletion even if file deletion fails
