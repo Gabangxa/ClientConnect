@@ -8,3 +8,4 @@ export { invoiceController } from './invoice.controller';
 export { feedbackController } from './feedback.controller';
 import { uploadController } from './upload.controller';
 export { uploadController };
+export { jobsController } from './jobs.controller';

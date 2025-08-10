@@ -15,6 +15,7 @@ import {
   invoiceController,
   feedbackController,
   uploadController,
+  jobsController,
 } from "./controllers";
 
 import {
@@ -82,6 +83,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/upload/signed-url", isAuthenticated, uploadController.generateUploadUrl);
   app.post("/api/upload/confirm", isAuthenticated, uploadController.confirmUpload);
   app.get("/api/download/:key", isAuthenticated, uploadController.generateDownloadUrl);
+
+  // Background job management routes (freelancer only)
+  app.get("/api/jobs/stats", isAuthenticated, jobsController.getQueueStats);
+  app.post("/api/jobs/thumbnail", isAuthenticated, jobsController.createThumbnailJob);
+  app.post("/api/jobs/email", isAuthenticated, jobsController.createEmailJob);
+  app.post("/api/jobs/cleanup", isAuthenticated, jobsController.createCleanupJob);
 
   // Client portal routes (token-based access)
   app.get("/api/client/:shareToken", withProjectAccess('client'), clientController.getClientPortalData);
