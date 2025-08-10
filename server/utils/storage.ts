@@ -3,6 +3,7 @@ import multer from 'multer';
 import multerS3 from 'multer-s3';
 import path from 'path';
 import { Request } from 'express';
+import { v4 as uuid } from 'uuid';
 import { logger } from '../middlewares/logging.middleware';
 
 // AWS S3 configuration (prepared for future use)
@@ -114,6 +115,26 @@ export class StorageService {
     }
   }
 
+  // Modern approach: Generate signed URL for direct client uploads
+  static async generateUploadURL(filename: string, mimeType: string): Promise<{ uploadUrl: string; key: string }> {
+    try {
+      const key = `${uuid()}-${filename}`;
+      const uploadUrl = await s3.getSignedUrlPromise('putObject', {
+        Bucket: bucketName,
+        Key: key,
+        ContentType: mimeType,
+        Expires: 300, // 5 minutes
+      });
+
+      logger.info({ filename, key }, 'S3 upload URL generated');
+      return { uploadUrl, key };
+    } catch (error) {
+      logger.error({ error, filename }, 'Failed to generate S3 upload URL');
+      throw new Error('Failed to generate upload URL');
+    }
+  }
+
+  // Generate signed URL for downloads
   static async generateSignedUrl(fileName: string, expiresIn: number = 3600): Promise<string> {
     try {
       const params = {
@@ -133,6 +154,14 @@ export class StorageService {
 
   static isS3Enabled(): boolean {
     return !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.S3_BUCKET_NAME);
+  }
+
+  // Get appropriate file URL (S3 or local)
+  static getFileUrl(keyOrFilename: string, isS3Key = false): string {
+    if (isS3Key && this.isS3Enabled()) {
+      return `https://${bucketName}.s3.${process.env.S3_REGION || 'us-east-1'}.amazonaws.com/${keyOrFilename}`;
+    }
+    return `/api/files/${keyOrFilename}`;
   }
 }
 

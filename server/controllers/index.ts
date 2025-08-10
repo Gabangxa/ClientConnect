@@ -6,3 +6,4 @@ export { deliverableController } from './deliverable.controller';
 export { messageController } from './message.controller';
 export { invoiceController } from './invoice.controller';
 export { feedbackController } from './feedback.controller';
+export { uploadController } from './upload.controller';

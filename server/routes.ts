@@ -14,6 +14,7 @@ import {
   messageController,
   invoiceController,
   feedbackController,
+  uploadController,
 } from "./controllers";
 
 import {
@@ -76,6 +77,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Feedback routes (freelancer)
   app.get("/api/projects/:projectId/feedback", isAuthenticated, withProjectAccess('freelancer'), feedbackController.getFeedback);
   app.get("/api/projects/:projectId/feedback/stats", isAuthenticated, withProjectAccess('freelancer'), feedbackController.getFeedbackStats);
+
+  // Modern S3 upload routes (freelancer)
+  app.post("/api/upload/signed-url", isAuthenticated, uploadController.generateUploadUrl);
+  app.post("/api/upload/confirm", isAuthenticated, uploadController.confirmUpload);
+  app.get("/api/download/:key", isAuthenticated, uploadController.generateDownloadUrl);
 
   // Client portal routes (token-based access)
   app.get("/api/client/:shareToken", withProjectAccess('client'), clientController.getClientPortalData);
