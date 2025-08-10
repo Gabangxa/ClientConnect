@@ -20,6 +20,8 @@ import {
   withProjectAccess,
   errorHandler,
   notFoundHandler,
+  rateLimiter,
+  authRateLimiter,
 } from "./middlewares";
 
 // Configure multer for file uploads
@@ -39,9 +41,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
   await setupAuth(app);
 
-  // Authentication routes
-  app.get("/api/auth/user", authController.getCurrentUser);
-  app.post("/api/auth/logout", authController.logout);
+  // Apply rate limiting globally
+  app.use(rateLimiter);
+
+  // Authentication routes with stricter rate limiting
+  app.get("/api/auth/user", authRateLimiter, authController.getCurrentUser);
+  app.post("/api/auth/logout", authRateLimiter, authController.logout);
 
   // Freelancer routes (authenticated)
   app.post("/api/projects", isAuthenticated, projectController.createProject);
