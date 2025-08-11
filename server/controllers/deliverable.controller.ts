@@ -10,22 +10,36 @@ export class DeliverableController {
       const userId = (req.user as any).claims.sub;
       const user = await userService.getUser(userId);
       
+      if (!file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+
+      // Upload file to object storage
+      const { filePath, downloadUrl } = await deliverableService.uploadFileToStorage(
+        file, 
+        projectId, 
+        'freelancer'
+      );
+      
       const deliverableData = insertDeliverableSchema.parse({
         projectId,
         title: req.body.title,
         description: req.body.description,
         type: req.body.type || 'deliverable',
-        filePath: file?.path,
-        fileName: file?.originalname,
-        fileSize: file?.size,
-        mimeType: file?.mimetype,
+        filePath: filePath,
+        fileName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
         uploaderId: userId,
         uploaderType: 'freelancer',
         uploaderName: user?.firstName || user?.email || 'Freelancer',
       });
 
       const deliverable = await deliverableService.createDeliverable(deliverableData);
-      res.status(201).json(deliverable);
+      res.status(201).json({
+        ...deliverable,
+        downloadUrl
+      });
     } catch (error) {
       console.error("Error creating deliverable:", error);
       res.status(500).json({ message: "Failed to create deliverable" });
@@ -39,22 +53,36 @@ export class DeliverableController {
       const file = (req as any).file;
       const clientName = req.body.clientName || project.clientName;
       
+      if (!file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+
+      // Upload file to object storage
+      const { filePath, downloadUrl } = await deliverableService.uploadFileToStorage(
+        file, 
+        project.id, 
+        'client'
+      );
+      
       const deliverableData = insertDeliverableSchema.parse({
         projectId: project.id,
         title: req.body.title,
         description: req.body.description,
         type: req.body.type || 'deliverable',
-        filePath: file?.path,
-        fileName: file?.originalname,
-        fileSize: file?.size,
-        mimeType: file?.mimetype,
+        filePath: filePath,
+        fileName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
         uploaderId: shareToken, // Use share token as client identifier
         uploaderType: 'client',
         uploaderName: clientName,
       });
 
       const deliverable = await deliverableService.createDeliverable(deliverableData);
-      res.status(201).json(deliverable);
+      res.status(201).json({
+        ...deliverable,
+        downloadUrl
+      });
     } catch (error) {
       console.error("Error creating client deliverable:", error);
       res.status(500).json({ message: "Failed to create deliverable" });

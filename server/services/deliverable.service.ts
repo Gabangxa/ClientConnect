@@ -5,6 +5,7 @@ import {
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, desc } from "drizzle-orm";
+import { storageService } from "./storage.service";
 
 export class DeliverableService {
   async createDeliverable(deliverable: InsertDeliverable): Promise<Deliverable> {
@@ -52,10 +53,10 @@ export class DeliverableService {
     
     if (deliverable?.filePath) {
       try {
-        // TODO: Implement file deletion when moving to object storage
-        console.log("File deletion skipped:", deliverable.filePath);
+        await storageService.deleteFile(deliverable.filePath);
+        console.log("File deleted from object storage:", deliverable.filePath);
       } catch (error) {
-        console.error("Error deleting file:", error);
+        console.error("Error deleting file from object storage:", error);
         // Continue with database deletion even if file deletion fails
       }
     }
@@ -64,6 +65,25 @@ export class DeliverableService {
     await db
       .delete(deliverables)
       .where(eq(deliverables.id, deliverableId));
+  }
+
+  async uploadFileToStorage(
+    file: Express.Multer.File, 
+    projectId: string, 
+    uploaderType: 'freelancer' | 'client'
+  ): Promise<{ filePath: string; downloadUrl: string }> {
+    try {
+      const filePath = storageService.generateFilePath(file.originalname, projectId, uploaderType);
+      const buffer = Buffer.from(file.buffer || await require('fs').promises.readFile(file.path));
+      
+      await storageService.uploadFile(filePath, buffer, file.mimetype);
+      const downloadUrl = storageService.getDownloadUrl(filePath);
+      
+      return { filePath, downloadUrl };
+    } catch (error) {
+      console.error("Error uploading file to storage:", error);
+      throw new Error("Failed to upload file");
+    }
   }
 }
 

@@ -5,3 +5,4 @@ export { deliverableService } from './deliverable.service';
 export { messageService } from './message.service';
 export { invoiceService } from './invoice.service';
 export { feedbackService } from './feedback.service';
+export { storageService } from './storage.service';

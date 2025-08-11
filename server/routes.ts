@@ -16,6 +16,8 @@ import {
   feedbackController,
 } from "./controllers";
 
+import { storageService } from "./services";
+
 import {
   withProjectAccess,
   errorHandler,
@@ -81,7 +83,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/client/:shareToken/deliverables", withProjectAccess('client'), upload.single('file'), deliverableController.uploadClientDeliverable);
   app.delete("/api/client/:shareToken/deliverables/:deliverableId", withProjectAccess('client'), deliverableController.deleteClientDeliverable);
 
-  // File download route
+  // File download route for object storage
+  app.get("/api/files/download/:filePath(*)", async (req, res) => {
+    try {
+      const filePath = decodeURIComponent(req.params.filePath);
+      
+      const fileBuffer = await storageService.downloadFile(filePath);
+      
+      // Get original filename from path
+      const fileName = filePath.split('/').pop() || 'download';
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      res.status(404).json({ message: "File not found" });
+    }
+  });
+
+  // Legacy file download route (for existing local files)
   app.get("/api/files/:filename", (req, res) => {
     try {
       const { filename } = req.params;
@@ -98,9 +119,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Error handling
-  app.use(notFoundHandler);
-  app.use(errorHandler);
-
+  // Note: Error handling is done in main server file to not interfere with Vite
   return server;
 }
