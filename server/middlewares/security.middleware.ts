@@ -70,10 +70,11 @@ interface RateLimitConfig {
 }
 
 const rateLimits: Record<string, RateLimitConfig> = {
-  global: { windowMs: 60 * 1000, maxAttempts: 100 }, // 100 per minute
-  login: { windowMs: 15 * 60 * 1000, maxAttempts: 5 }, // 5 per 15 minutes
-  fileUpload: { windowMs: 60 * 1000, maxAttempts: 10 }, // 10 per minute
-  messaging: { windowMs: 60 * 1000, maxAttempts: 30 }, // 30 per minute
+  // More generous limits for development, can be tightened in production
+  global: { windowMs: 60 * 1000, maxAttempts: process.env.NODE_ENV === 'development' ? 1000 : 100 }, // 1000 per minute in dev
+  login: { windowMs: 15 * 60 * 1000, maxAttempts: process.env.NODE_ENV === 'development' ? 50 : 5 }, // 50 per 15 minutes in dev
+  fileUpload: { windowMs: 60 * 1000, maxAttempts: process.env.NODE_ENV === 'development' ? 50 : 10 }, // 50 per minute in dev
+  messaging: { windowMs: 60 * 1000, maxAttempts: process.env.NODE_ENV === 'development' ? 100 : 30 }, // 100 per minute in dev
 };
 
 /**
