@@ -19,8 +19,7 @@ export class ClientController {
       // Log access
       await projectService.logAccess({
         projectId: project.id,
-        accessType: 'view',
-        ipAddress: req.ip || 'unknown',
+        clientIp: req.ip || 'unknown',
         userAgent: req.get('User-Agent') || 'unknown',
         shareToken: shareToken,
       });
