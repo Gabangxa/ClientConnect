@@ -22,7 +22,23 @@ import {
   withProjectAccess,
   errorHandler,
   notFoundHandler,
+  validateBody,
+  validateParams,
+  validateQuery,
 } from "./middlewares";
+
+import {
+  createProjectBodySchema,
+  updateProjectBodySchema,
+  createMessageBodySchema,
+  createInvoiceBodySchema,
+  submitFeedbackBodySchema,
+  projectParamsSchema,
+  shareTokenParamsSchema,
+  deliverableParamsSchema,
+  invoiceParamsSchema,
+  createDeliverableBodySchema,
+} from "./validation/schemas";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -46,11 +62,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/logout", authController.logout);
 
   // Freelancer routes (authenticated)
-  app.post("/api/projects", isAuthenticated, projectController.createProject);
+  app.post("/api/projects", 
+    isAuthenticated, 
+    validateBody(createProjectBodySchema), 
+    projectController.createProject
+  );
   app.get("/api/projects", isAuthenticated, projectController.getProjects);
-  app.get("/api/projects/:projectId", isAuthenticated, withProjectAccess('freelancer'), projectController.getProject);
-  app.put("/api/projects/:projectId", isAuthenticated, withProjectAccess('freelancer'), projectController.updateProject);
-  app.post("/api/projects/:projectId/regenerate-token", isAuthenticated, withProjectAccess('freelancer'), projectController.regenerateShareToken);
+  app.get("/api/projects/:projectId", 
+    isAuthenticated, 
+    validateParams(projectParamsSchema),
+    withProjectAccess('freelancer'), 
+    projectController.getProject
+  );
+  app.put("/api/projects/:projectId", 
+    isAuthenticated, 
+    validateParams(projectParamsSchema),
+    validateBody(updateProjectBodySchema),
+    withProjectAccess('freelancer'), 
+    projectController.updateProject
+  );
+  app.post("/api/projects/:projectId/regenerate-token", 
+    isAuthenticated, 
+    validateParams(projectParamsSchema),
+    withProjectAccess('freelancer'), 
+    projectController.regenerateShareToken
+  );
 
   // Deliverable routes (freelancer)
   app.post("/api/projects/:projectId/deliverables", isAuthenticated, withProjectAccess('freelancer'), upload.single('file'), deliverableController.uploadDeliverable);
@@ -58,10 +94,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/deliverables/:deliverableId", isAuthenticated, deliverableController.deleteDeliverable);
 
   // Message routes (freelancer)
-  app.post("/api/projects/:projectId/messages", isAuthenticated, withProjectAccess('freelancer'), messageController.sendMessage);
-  app.get("/api/projects/:projectId/messages", isAuthenticated, withProjectAccess('freelancer'), messageController.getMessages);
+  app.post("/api/projects/:projectId/messages", 
+    isAuthenticated, 
+    validateParams(projectParamsSchema),
+    validateBody(createMessageBodySchema),
+    withProjectAccess('freelancer'), 
+    messageController.sendMessage
+  );
+  app.get("/api/projects/:projectId/messages", 
+    isAuthenticated, 
+    validateParams(projectParamsSchema),
+    withProjectAccess('freelancer'), 
+    messageController.getMessages
+  );
   app.get("/api/messages/recent", isAuthenticated, messageController.getRecentMessages);
-  app.post("/api/projects/:projectId/messages/mark-read", isAuthenticated, withProjectAccess('freelancer'), messageController.markAsRead);
+  app.post("/api/projects/:projectId/messages/mark-read", 
+    isAuthenticated, 
+    validateParams(projectParamsSchema),
+    withProjectAccess('freelancer'), 
+    messageController.markAsRead
+  );
 
   // Invoice routes (freelancer)
   app.post("/api/projects/:projectId/invoices", isAuthenticated, withProjectAccess('freelancer'), invoiceController.createInvoice);

@@ -1,29 +1,28 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { projectService, deliverableService, messageService, invoiceService, feedbackService } from '../services';
-import { insertProjectSchema } from '@shared/schema';
 
 export class ProjectController {
-  async createProject(req: Request, res: Response) {
+  async createProject(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = (req.user as any).claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const projectData = insertProjectSchema.parse({
+      // Validation is now handled by middleware, so req.body is already validated
+      const projectData = {
         ...req.body,
         freelancerId: userId,
-      });
+      };
 
       const project = await projectService.createProject(projectData);
       res.status(201).json(project);
     } catch (error) {
-      console.error("Error creating project:", error);
-      res.status(500).json({ message: "Failed to create project" });
+      next(error); // Pass error to centralized error handler
     }
   }
 
-  async getProjects(req: Request, res: Response) {
+  async getProjects(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = (req.user as any).claims?.sub;
       if (!userId) {
@@ -33,14 +32,13 @@ export class ProjectController {
       const projects = await projectService.getProjectsByFreelancer(userId);
       res.json(projects);
     } catch (error) {
-      console.error("Error fetching projects:", error);
-      res.status(500).json({ message: "Failed to fetch projects" });
+      next(error);
     }
   }
 
-  async getProject(req: Request, res: Response) {
+  async getProject(req: Request, res: Response, next: NextFunction) {
     try {
-      const { projectId } = req.params;
+      const { projectId } = req.params; // Already validated by middleware
       const project = await projectService.getProjectById(projectId);
       
       if (!project) {
@@ -63,34 +61,31 @@ export class ProjectController {
         feedback,
       });
     } catch (error) {
-      console.error("Error fetching project:", error);
-      res.status(500).json({ message: "Failed to fetch project" });
+      next(error);
     }
   }
 
-  async updateProject(req: Request, res: Response) {
+  async updateProject(req: Request, res: Response, next: NextFunction) {
     try {
-      const { projectId } = req.params;
-      const updates = req.body;
+      const { projectId } = req.params; // Already validated by middleware
+      const updates = req.body; // Already validated by middleware
 
       const project = await projectService.updateProject(projectId, updates);
       res.json(project);
     } catch (error) {
-      console.error("Error updating project:", error);
-      res.status(500).json({ message: "Failed to update project" });
+      next(error);
     }
   }
 
-  async regenerateShareToken(req: Request, res: Response) {
+  async regenerateShareToken(req: Request, res: Response, next: NextFunction) {
     try {
-      const { projectId } = req.params;
+      const { projectId } = req.params; // Already validated by middleware
       const userId = (req.user as any).claims?.sub;
 
       const project = await projectService.regenerateShareToken(projectId, userId);
       res.json(project);
     } catch (error) {
-      console.error("Error regenerating share token:", error);
-      res.status(500).json({ message: "Failed to regenerate share token" });
+      next(error);
     }
   }
 }
