@@ -9,6 +9,7 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        'xl2': '1.25rem'
       },
       colors: {
         background: "var(--background)",
@@ -61,6 +62,14 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
+        brand: {
+          50:  '#f5f8ff',
+          100: '#e7efff',
+          300: '#8aa0ff',
+          500: '#5b77ff', // primary accent
+          700: '#3b4de6',
+        },
+        glass: 'rgba(255,255,255,0.6)',
       },
       keyframes: {
         "accordion-down": {

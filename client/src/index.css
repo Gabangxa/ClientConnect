@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* glassmorphism helper */
+.glass {
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+
+/* small utility for soft shadows */
+.soft-shadow {
+  box-shadow: 0 8px 24px rgba(18, 25, 36, 0.06);
+}
+
+/* subtle focus outline for accessibility */
+:focus {
+  outline: 3px solid rgba(91,119,255,0.18);
+  outline-offset: 2px;
+}
+
 :root {
   --background: hsl(0, 0%, 98%);
   --foreground: hsl(240, 10%, 8%);
@@ -46,6 +65,11 @@
   --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(262, 83%, 58%);
   --radius: 0.75rem;
+}
+
+/* subtle global resets */
+html, body, #root {
+  height: 100%;
 }
 
 @layer base {

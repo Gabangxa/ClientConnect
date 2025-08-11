@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Briefcase, Users, FileText, MessageSquare } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { motion } from "framer-motion";
 import type { Project } from "@shared/schema";
 
 export default function Dashboard() {
@@ -81,7 +82,7 @@ export default function Dashboard() {
         {/* Client Communication Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Messages Card */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 glass rounded-xl2 soft-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -144,7 +145,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Quick Actions Card */}
-          <Card>
+          <Card className="glass rounded-xl2 soft-shadow">
             <CardHeader>
               <CardTitle className="text-lg">Quick Actions</CardTitle>
               <CardDescription>Manage your client work</CardDescription>
@@ -185,55 +186,63 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards with Glassmorphism */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalProjects}</div>
-            </CardContent>
-          </Card>
+          <motion.div whileHover={{ scale: 1.02 }}>
+            <Card className="glass rounded-xl2 soft-shadow transform transition-transform hover:-translate-y-1">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalProjects}</div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">{activeProjects}</div>
-            </CardContent>
-          </Card>
+          <motion.div whileHover={{ scale: 1.02 }}>
+            <Card className="glass rounded-xl2 soft-shadow transform transition-transform hover:-translate-y-1">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-brand-500">{activeProjects}</div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{completedProjects}</div>
-            </CardContent>
-          </Card>
+          <motion.div whileHover={{ scale: 1.02 }}>
+            <Card className="glass rounded-xl2 soft-shadow transform transition-transform hover:-translate-y-1">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-brand-700">{completedProjects}</div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Progress</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {projects.length > 0 
-                  ? Math.round(projects.reduce((acc, p) => acc + (p.progress || 0), 0) / projects.length)
-                  : 0}%
-              </div>
-            </CardContent>
-          </Card>
+          <motion.div whileHover={{ scale: 1.02 }}>
+            <Card className="glass rounded-xl2 soft-shadow transform transition-transform hover:-translate-y-1">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Avg. Progress</CardTitle>
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {projects.length > 0 
+                    ? Math.round(projects.reduce((acc, p) => acc + (p.progress || 0), 0) / projects.length)
+                    : 0}%
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Projects List */}
-        <Card>
+        <Card className="glass rounded-xl2 soft-shadow">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
