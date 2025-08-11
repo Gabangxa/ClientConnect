@@ -73,7 +73,9 @@ export class DeliverableService {
     uploaderType: 'freelancer' | 'client'
   ): Promise<{ filePath: string; downloadUrl: string }> {
     try {
-      const filePath = storageService.generateFilePath(file.originalname, projectId, uploaderType);
+      // Use secure filename if available, otherwise generate one
+      const secureFilename = (file as any).secureFilename || file.originalname;
+      const filePath = storageService.generateFilePath(secureFilename, projectId, uploaderType);
       const buffer = Buffer.from(file.buffer || await require('fs').promises.readFile(file.path));
       
       await storageService.uploadFile(filePath, buffer, file.mimetype);

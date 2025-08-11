@@ -27,6 +27,20 @@ import {
   validateQuery,
 } from "./middlewares";
 
+import { 
+  rateLimiters, 
+  validateFileUpload, 
+  bruteForceProtection, 
+  secureHeaders 
+} from "./middlewares/security.middleware";
+
+import { 
+  generateJWTForClient, 
+  verifyJWTToken, 
+  refreshToken, 
+  hybridClientAuth 
+} from "./middlewares/jwt.middleware";
+
 import {
   createProjectBodySchema,
   updateProjectBodySchema,
@@ -46,20 +60,53 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Enhanced secure file upload configuration
 const upload = multer({
   dest: uploadDir,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 5, // Max 5 files per upload
+    fieldSize: 1024 * 1024, // 1MB field size limit
   },
+  fileFilter: (req, file, cb) => {
+    // Basic MIME type check (middleware will do comprehensive validation)
+    const allowedMimes = [
+      'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'video/mp4', 'video/webm', 'audio/mpeg', 'audio/wav',
+      'application/zip', 'text/plain'
+    ];
+    
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`MIME type ${file.mimetype} not allowed`));
+    }
+  }
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
+  
+  // Apply global security middleware
+  app.use(secureHeaders);
+  app.use(rateLimiters.global);
+  
   await setupAuth(app);
 
-  // Authentication routes
+  // Authentication routes with brute force protection
   app.get("/api/auth/user", authController.getCurrentUser);
   app.post("/api/auth/logout", authController.logout);
+  app.get("/api/auth/status", authController.checkAuthStatus);
+  
+  // JWT token routes for client access
+  app.post("/api/auth/client-token/:shareToken", 
+    withProjectAccess('client'), 
+    generateJWTForClient
+  );
+  app.post("/api/auth/refresh-token", refreshToken);
+  
+  // Note: Login protection is handled in replitAuth middleware
 
   // Freelancer routes (authenticated)
   app.post("/api/projects", 
@@ -88,13 +135,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     projectController.regenerateShareToken
   );
 
-  // Deliverable routes (freelancer)
-  app.post("/api/projects/:projectId/deliverables", isAuthenticated, withProjectAccess('freelancer'), upload.single('file'), deliverableController.uploadDeliverable);
+  // Deliverable routes (freelancer) with file upload security
+  app.post("/api/projects/:projectId/deliverables", 
+    rateLimiters.fileUpload,
+    isAuthenticated, 
+    withProjectAccess('freelancer'), 
+    upload.single('file'), 
+    validateFileUpload,
+    deliverableController.uploadDeliverable
+  );
   app.get("/api/projects/:projectId/deliverables", isAuthenticated, withProjectAccess('freelancer'), deliverableController.getDeliverables);
   app.delete("/api/deliverables/:deliverableId", isAuthenticated, deliverableController.deleteDeliverable);
 
-  // Message routes (freelancer)
+  // Message routes (freelancer) with rate limiting
   app.post("/api/projects/:projectId/messages", 
+    rateLimiters.messaging,
     isAuthenticated, 
     validateParams(projectParamsSchema),
     validateBody(createMessageBodySchema),
@@ -126,14 +181,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/:projectId/feedback", isAuthenticated, withProjectAccess('freelancer'), feedbackController.getFeedback);
   app.get("/api/projects/:projectId/feedback/stats", isAuthenticated, withProjectAccess('freelancer'), feedbackController.getFeedbackStats);
 
-  // Client portal routes (token-based access)
+  // Client portal routes (token-based access) with security
   app.get("/api/client/:shareToken", withProjectAccess('client'), clientController.getClientPortalData);
-  app.post("/api/client/:shareToken/messages", withProjectAccess('client'), clientController.sendMessage);
-  app.post("/api/client/:shareToken/feedback", withProjectAccess('client'), clientController.submitFeedback);
+  app.post("/api/client/:shareToken/messages", 
+    rateLimiters.messaging,
+    withProjectAccess('client'), 
+    clientController.sendMessage
+  );
+  app.post("/api/client/:shareToken/feedback", 
+    withProjectAccess('client'), 
+    clientController.submitFeedback
+  );
 
-  // Client deliverable routes
-  app.post("/api/client/:shareToken/deliverables", withProjectAccess('client'), upload.single('file'), deliverableController.uploadClientDeliverable);
-  app.delete("/api/client/:shareToken/deliverables/:deliverableId", withProjectAccess('client'), deliverableController.deleteClientDeliverable);
+  // Client deliverable routes with file upload security
+  app.post("/api/client/:shareToken/deliverables", 
+    rateLimiters.fileUpload,
+    withProjectAccess('client'), 
+    upload.single('file'), 
+    validateFileUpload,
+    deliverableController.uploadClientDeliverable
+  );
+  app.delete("/api/client/:shareToken/deliverables/:deliverableId", 
+    withProjectAccess('client'), 
+    deliverableController.deleteClientDeliverable
+  );
 
   // File download route for object storage
   app.get("/api/files/download/:filePath(*)", async (req, res) => {

@@ -36,9 +36,12 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    name: 'clientconnect.sid', // Custom session name
+    rolling: true, // Reset expiry on activity
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production', // Only secure in production
+      sameSite: 'strict', // CSRF protection
       maxAge: sessionTtl,
     },
   });
