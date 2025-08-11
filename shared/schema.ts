@@ -36,7 +36,11 @@ export const users = pgTable("users", {
   businessName: varchar("business_name"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Indexes for user queries
+  index("idx_users_email").on(table.email),
+  index("idx_users_created_at").on(table.createdAt),
+]);
 
 export const projects = pgTable("projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -53,7 +57,16 @@ export const projects = pgTable("projects", {
   progress: integer("progress").default(0), // 0-100
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Performance indexes for high-traffic queries
+  index("idx_projects_freelancer_id").on(table.freelancerId),
+  index("idx_projects_share_token").on(table.shareToken),
+  index("idx_projects_status").on(table.status),
+  index("idx_projects_created_at").on(table.createdAt),
+  index("idx_projects_last_accessed").on(table.lastAccessed),
+  // Composite index for freelancer projects by status
+  index("idx_projects_freelancer_status").on(table.freelancerId, table.status),
+]);
 
 export const deliverables = pgTable("deliverables", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -71,7 +84,16 @@ export const deliverables = pgTable("deliverables", {
   status: varchar("status").notNull().default("completed"), // draft, completed, approved
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Indexes for file queries and project deliverables
+  index("idx_deliverables_project_id").on(table.projectId),
+  index("idx_deliverables_uploader_type").on(table.uploaderType),
+  index("idx_deliverables_status").on(table.status),
+  index("idx_deliverables_created_at").on(table.createdAt),
+  index("idx_deliverables_file_path").on(table.filePath),
+  // Composite index for project deliverables by type
+  index("idx_deliverables_project_type").on(table.projectId, table.type),
+]);
 
 // Access log table for tracking client portal visits
 export const accessLogs = pgTable("access_logs", {
@@ -81,7 +103,15 @@ export const accessLogs = pgTable("access_logs", {
   clientIp: varchar("client_ip"),
   userAgent: text("user_agent"),
   accessedAt: timestamp("accessed_at").defaultNow(),
-});
+}, (table) => [
+  // Indexes for access tracking and analytics
+  index("idx_access_logs_project_id").on(table.projectId),
+  index("idx_access_logs_share_token").on(table.shareToken),
+  index("idx_access_logs_accessed_at").on(table.accessedAt),
+  index("idx_access_logs_client_ip").on(table.clientIp),
+  // Composite index for project access tracking
+  index("idx_access_logs_project_accessed").on(table.projectId, table.accessedAt),
+]);
 
 export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -101,7 +131,19 @@ export const messages = pgTable("messages", {
   metadata: text("metadata"), // JSON string for extensible data
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Indexes for message queries and threading
+  index("idx_messages_project_id").on(table.projectId),
+  index("idx_messages_thread_id").on(table.threadId),
+  index("idx_messages_parent_message_id").on(table.parentMessageId),
+  index("idx_messages_sender_type").on(table.senderType),
+  index("idx_messages_is_read").on(table.isRead),
+  index("idx_messages_created_at").on(table.createdAt),
+  index("idx_messages_priority").on(table.priority),
+  // Composite indexes for common query patterns
+  index("idx_messages_project_unread").on(table.projectId, table.isRead),
+  index("idx_messages_project_created").on(table.projectId, table.createdAt),
+]);
 
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -114,7 +156,16 @@ export const invoices = pgTable("invoices", {
   filePath: varchar("file_path"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Indexes for invoice queries and reporting
+  index("idx_invoices_project_id").on(table.projectId),
+  index("idx_invoices_status").on(table.status),
+  index("idx_invoices_due_date").on(table.dueDate),
+  index("idx_invoices_created_at").on(table.createdAt),
+  index("idx_invoices_invoice_number").on(table.invoiceNumber),
+  // Composite index for project invoices by status
+  index("idx_invoices_project_status").on(table.projectId, table.status),
+]);
 
 export const feedback = pgTable("feedback", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -124,7 +175,15 @@ export const feedback = pgTable("feedback", {
   comment: text("comment"),
   isPublic: boolean("is_public").default(false),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  // Indexes for feedback queries and analytics
+  index("idx_feedback_project_id").on(table.projectId),
+  index("idx_feedback_rating").on(table.rating),
+  index("idx_feedback_is_public").on(table.isPublic),
+  index("idx_feedback_created_at").on(table.createdAt),
+  // Composite index for project feedback analytics
+  index("idx_feedback_project_rating").on(table.projectId, table.rating),
+]);
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
