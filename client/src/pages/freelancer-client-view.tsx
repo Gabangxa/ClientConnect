@@ -13,10 +13,18 @@ import { Badge } from "@/components/ui/badge";
 // Removed unused imports - now using unified MessageThread component
 import { ArrowLeft, ExternalLink, Eye, FileText, MessageSquare, CreditCard, Star } from "lucide-react";
 import { MessageThread } from "@/components/messaging/message-thread";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import type { z } from "zod";
 
 type MessageFormData = z.infer<typeof insertMessageSchema>;
+
+// Safe date formatting utility
+const formatSafeDate = (dateValue: any, formatStr: string, fallback: string = "Not set"): string => {
+  if (!dateValue) return fallback;
+  const date = new Date(dateValue);
+  if (!isValid(date)) return fallback;
+  return format(date, formatStr);
+};
 
 export default function FreelancerClientView() {
   const { projectId } = useParams();
@@ -190,7 +198,7 @@ export default function FreelancerClientView() {
                 {project.status}
               </Badge>
               <p className="text-xs text-muted-foreground mt-2">
-                Created {format(new Date(project.createdAt), 'MMM dd, yyyy')}
+                Created {formatSafeDate(project.createdAt, 'MMM dd, yyyy')}
               </p>
             </CardContent>
           </Card>
@@ -204,7 +212,7 @@ export default function FreelancerClientView() {
                 <>
                   <Badge variant="outline" className="text-green-600">Active</Badge>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Expires {format(new Date(project.shareTokenExpiry), 'MMM dd, yyyy')}
+                    Expires {formatSafeDate(project.shareTokenExpiry, 'MMM dd, yyyy')}
                   </p>
                 </>
               ) : (
@@ -224,9 +232,7 @@ export default function FreelancerClientView() {
             </CardHeader>
             <CardContent>
               <p className="text-sm font-medium">
-                {project.lastAccessed 
-                  ? format(new Date(project.lastAccessed), 'MMM dd, h:mm a')
-                  : 'Never accessed'}
+                {formatSafeDate(project.lastAccessed, 'MMM dd, h:mm a', 'Never accessed')}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {project.accessCount || 0} total visits

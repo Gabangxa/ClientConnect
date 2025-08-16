@@ -1,7 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Download, ExternalLink, Shield } from "lucide-react";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
+
+// Safe date formatting utility
+const formatSafeDate = (dateValue: any, formatStr: string, fallback: string = "Not set"): string => {
+  if (!dateValue) return fallback;
+  const date = new Date(dateValue);
+  if (!isValid(date)) return fallback;
+  return format(date, formatStr);
+};
 
 interface ClientHeaderProps {
   project: any;
@@ -33,7 +41,7 @@ export function ClientHeader({ project, unreadMessages, shareToken, onNavigateTo
             Project: <span className="font-medium">{project.name}</span>
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Shared on {format(new Date(project.createdAt), 'MMMM dd, yyyy')}
+            Shared on {formatSafeDate(project.createdAt, 'MMMM dd, yyyy')}
           </p>
         </div>
 

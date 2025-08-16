@@ -1,7 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Home, FileText, MessageSquare, CreditCard, Star, Clock } from "lucide-react";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
+
+// Safe date formatting utility
+const formatSafeDate = (dateValue: any, formatStr: string, fallback: string = "Not set"): string => {
+  if (!dateValue) return fallback;
+  const date = new Date(dateValue);
+  if (!isValid(date)) return fallback;
+  return format(date, formatStr);
+};
 
 interface ClientSidebarProps {
   project: any;
@@ -44,7 +52,7 @@ export function ClientSidebar({ project, activeTab, onTabChange }: ClientSidebar
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Started</span>
             <span className="text-muted-foreground">
-              {format(new Date(project.createdAt), 'MMM dd, yyyy')}
+              {formatSafeDate(project.createdAt, 'MMM dd, yyyy')}
             </span>
           </div>
           {project.timeline && (
@@ -83,7 +91,7 @@ export function ClientSidebar({ project, activeTab, onTabChange }: ClientSidebar
           <p>{project.freelancerName || 'Your Service Provider'}</p>
           <div className="flex items-center mt-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3 mr-1" />
-            Last updated {format(new Date(project.lastAccessed || project.updatedAt), 'MMM dd')}
+            Last updated {formatSafeDate(project.lastAccessed || project.updatedAt, 'MMM dd', 'recently')}
           </div>
         </div>
       </div>

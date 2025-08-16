@@ -2,7 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, MessageSquare, CreditCard, Download, Reply } from "lucide-react";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
+
+// Safe date formatting utility
+const formatSafeDate = (dateValue: any, formatStr: string, fallback: string = "Unknown date"): string => {
+  if (!dateValue) return fallback;
+  const date = new Date(dateValue);
+  if (!isValid(date)) return fallback;
+  return format(date, formatStr);
+};
 
 interface Activity {
   id: string;
@@ -118,7 +126,7 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
                       </div>
                     </div>
                     <span className="text-xs text-muted-foreground flex-shrink-0 ml-4">
-                      {format(new Date(activity.createdAt), 'MMM dd, h:mm a')}
+                      {formatSafeDate(activity.createdAt, 'MMM dd, h:mm a')}
                     </span>
                   </div>
                 </div>
