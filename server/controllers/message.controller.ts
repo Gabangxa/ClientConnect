@@ -67,6 +67,18 @@ export class MessageController {
       res.status(500).json({ message: "Failed to mark messages as read" });
     }
   }
+
+  async markSingleMessageAsRead(req: Request, res: Response) {
+    try {
+      const { messageId } = req.params;
+
+      await messageService.markMessageAsRead(messageId);
+      res.json({ message: "Message marked as read" });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  }
 }
 
 export const messageController = new MessageController();

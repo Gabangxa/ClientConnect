@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Briefcase, Users, FileText, MessageSquare } from "lucide-react";
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -57,6 +59,18 @@ export default function Dashboard() {
   const totalProjects = projects.length;
   const activeProjects = projects.filter(p => p.status === 'active').length;
   const completedProjects = projects.filter(p => p.status === 'completed').length;
+
+  // Mark individual message as read mutation
+  const markMessageAsReadMutation = useMutation({
+    mutationFn: async (messageId: string) => {
+      const response = await apiRequest("POST", `/api/messages/${messageId}/mark-read`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refresh the recent messages to update unread counts
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/recent"] });
+    },
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -114,7 +128,15 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-3 max-h-80 overflow-y-auto">
                   {recentMessages.map((message: any) => (
-                    <div key={message.id} className={`p-4 rounded-lg border transition-all hover:shadow-md ${!message.isRead ? 'bg-blue-50 border-blue-200' : 'bg-muted/30 border-border'}`}>
+                    <div 
+                      key={message.id} 
+                      className={`p-4 rounded-lg border transition-all hover:shadow-md cursor-pointer ${!message.isRead ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' : 'bg-muted/30 border-border hover:bg-muted/50'}`}
+                      onClick={() => {
+                        if (!message.isRead) {
+                          markMessageAsReadMutation.mutate(message.id);
+                        }
+                      }}
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">

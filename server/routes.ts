@@ -169,6 +169,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     withProjectAccess('freelancer'), 
     messageController.markAsRead
   );
+  app.post("/api/messages/:messageId/mark-read", 
+    isAuthenticated, 
+    messageController.markSingleMessageAsRead
+  );
 
   // Invoice routes (freelancer)
   app.post("/api/projects/:projectId/invoices", isAuthenticated, withProjectAccess('freelancer'), invoiceController.createInvoice);
