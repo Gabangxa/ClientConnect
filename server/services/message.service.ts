@@ -83,7 +83,12 @@ export class MessageService {
       })
       .from(messages)
       .leftJoin(projects, eq(messages.projectId, projects.id))
-      .where(eq(projects.freelancerId, freelancerId))
+      .where(
+        and(
+          eq(projects.freelancerId, freelancerId),
+          eq(messages.senderType, 'client') // Only show messages FROM clients TO freelancer
+        )
+      )
       .orderBy(desc(messages.createdAt))
       .limit(10);
   }
