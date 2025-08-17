@@ -66,6 +66,20 @@ export class ClientController {
     }
   }
 
+  async markMessagesAsRead(req: Request, res: Response) {
+    try {
+      const { shareToken } = req.params;
+      const project = (req as any).project; // Set by middleware
+      const { senderType } = req.body;
+
+      await messageService.markMessagesAsRead(project.id, senderType);
+      res.json({ message: "Messages marked as read" });
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+      res.status(500).json({ message: "Failed to mark messages as read" });
+    }
+  }
+
   async submitFeedback(req: Request, res: Response) {
     try {
       const { shareToken } = req.params;

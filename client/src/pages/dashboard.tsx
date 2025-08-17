@@ -34,10 +34,13 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
-  // Fetch recent messages from all projects
+  // Fetch recent messages from all projects with auto-refresh
   const { data: recentMessages = [], isLoading: messagesLoading } = useQuery<any[]>({
     queryKey: ["/api/messages/recent"],
     enabled: isAuthenticated && projects.length > 0,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds for new messages
+    refetchOnWindowFocus: true, // Refresh when window regains focus
+    staleTime: 10000, // Consider data stale after 10 seconds
   });
 
   if (isLoading || projectsLoading) {

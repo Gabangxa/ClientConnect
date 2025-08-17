@@ -62,6 +62,9 @@ export default function FreelancerClientView() {
   const { data: messages = [] } = useQuery<any[]>({
     queryKey: ["/api/projects", projectId, "messages"],
     enabled: !!project,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds for new messages
+    refetchOnWindowFocus: true, // Refresh when window regains focus
+    staleTime: 10000, // Consider data stale after 10 seconds
   });
 
   const { data: invoices = [] } = useQuery<any[]>({

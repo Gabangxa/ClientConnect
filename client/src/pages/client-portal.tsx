@@ -13,7 +13,8 @@ import { ActivityTimeline } from "@/components/activity-timeline";
 import { FileUpload } from "@/components/file-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-// Removed unused Form imports - now using unified MessageThread component
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Download, Send, Star, FileText, Clock, MessageSquare, CreditCard, Reply, Trash2 } from "lucide-react";
@@ -35,6 +36,9 @@ export default function ClientPortal() {
   const { data: portalData, isLoading } = useQuery<any>({
     queryKey: ["/api/client", shareToken],
     enabled: !!shareToken,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds for new messages
+    refetchOnWindowFocus: true, // Refresh when window regains focus
+    staleTime: 10000, // Consider data stale after 10 seconds
   });
 
   const feedbackForm = useForm<FeedbackFormData>({
@@ -42,6 +46,19 @@ export default function ClientPortal() {
     defaultValues: {
       clientName: "",
       comment: "",
+    },
+  });
+
+  const markMessagesAsReadMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/client/${shareToken}/messages/mark-read`, {
+        senderType: 'freelancer'
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refresh the portal data to update unread counts
+      queryClient.invalidateQueries({ queryKey: ["/api/client", shareToken] });
     },
   });
 
@@ -170,7 +187,13 @@ export default function ClientPortal() {
       <ClientSidebar 
         project={project}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          // Mark messages as read when switching to messages tab
+          if (tab === 'messages' && unreadMessages > 0) {
+            markMessagesAsReadMutation.mutate();
+          }
+        }}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -181,6 +204,10 @@ export default function ClientPortal() {
           onNavigateToMessages={() => {
             console.log('Navigating to messages tab');
             setActiveTab('messages');
+            // Mark messages as read when opening the messages tab
+            if (unreadMessages > 0) {
+              markMessagesAsReadMutation.mutate();
+            }
           }}
         />
 
@@ -196,6 +223,10 @@ export default function ClientPortal() {
                 onNavigateToMessages={() => {
                   console.log('Navigating to messages tab from status card');
                   setActiveTab('messages');
+                  // Mark messages as read when opening the messages tab
+                  if (unreadMessages > 0) {
+                    markMessagesAsReadMutation.mutate();
+                  }
                 }}
               />
 
@@ -221,7 +252,13 @@ export default function ClientPortal() {
                           }
                         </p>
                         <Button 
-                          onClick={() => setActiveTab('messages')}
+                          onClick={() => {
+                            setActiveTab('messages');
+                            // Mark messages as read when opening the messages tab
+                            if (unreadMessages > 0) {
+                              markMessagesAsReadMutation.mutate();
+                            }
+                          }}
                           className="w-full"
                         >
                           <MessageSquare className="mr-2 h-4 w-4" />

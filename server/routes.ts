@@ -188,6 +188,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     withProjectAccess('client'), 
     clientController.sendMessage
   );
+  app.post("/api/client/:shareToken/messages/mark-read", 
+    withProjectAccess('client'), 
+    clientController.markMessagesAsRead
+  );
   app.post("/api/client/:shareToken/feedback", 
     withProjectAccess('client'), 
     clientController.submitFeedback
