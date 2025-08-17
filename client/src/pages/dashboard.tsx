@@ -16,6 +16,33 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
+  // All hooks must be declared before any conditional returns
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
+    queryKey: ["/api/projects"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch recent messages from all projects with auto-refresh
+  const { data: recentMessages = [], isLoading: messagesLoading } = useQuery<any[]>({
+    queryKey: ["/api/messages/recent"],
+    enabled: isAuthenticated && projects.length > 0,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds for new messages
+    refetchOnWindowFocus: true, // Refresh when window regains focus
+    staleTime: 10000, // Consider data stale after 10 seconds
+  });
+
+  // Mark individual message as read mutation
+  const markMessageAsReadMutation = useMutation({
+    mutationFn: async (messageId: string) => {
+      const response = await apiRequest("POST", `/api/messages/${messageId}/mark-read`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refresh the recent messages to update unread counts
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/recent"] });
+    },
+  });
+
   // Redirect to home if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -31,20 +58,6 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
-    queryKey: ["/api/projects"],
-    enabled: isAuthenticated,
-  });
-
-  // Fetch recent messages from all projects with auto-refresh
-  const { data: recentMessages = [], isLoading: messagesLoading } = useQuery<any[]>({
-    queryKey: ["/api/messages/recent"],
-    enabled: isAuthenticated && projects.length > 0,
-    refetchInterval: 30000, // Auto-refresh every 30 seconds for new messages
-    refetchOnWindowFocus: true, // Refresh when window regains focus
-    staleTime: 10000, // Consider data stale after 10 seconds
-  });
-
   if (isLoading || projectsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -59,18 +72,6 @@ export default function Dashboard() {
   const totalProjects = projects.length;
   const activeProjects = projects.filter(p => p.status === 'active').length;
   const completedProjects = projects.filter(p => p.status === 'completed').length;
-
-  // Mark individual message as read mutation
-  const markMessageAsReadMutation = useMutation({
-    mutationFn: async (messageId: string) => {
-      const response = await apiRequest("POST", `/api/messages/${messageId}/mark-read`, {});
-      return response.json();
-    },
-    onSuccess: () => {
-      // Refresh the recent messages to update unread counts
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/recent"] });
-    },
-  });
 
   return (
     <div className="min-h-screen bg-background">
