@@ -1,8 +1,38 @@
+/**
+ * Client Controller
+ * 
+ * Handles all client portal operations for share token-based access.
+ * Manages client interactions including portal data retrieval, messaging,
+ * and feedback submission without requiring client authentication.
+ * 
+ * Features:
+ * - Token-based portal access validation
+ * - Comprehensive project data aggregation
+ * - Client message handling and feedback submission
+ * - Access logging and security tracking
+ * 
+ * @module ClientController
+ */
+
 import { Request, Response } from 'express';
 import { projectService, deliverableService, messageService, invoiceService, feedbackService } from '../services';
 import { insertMessageSchema, insertFeedbackSchema } from '@shared/schema';
 
+/**
+ * Controller class for handling client portal operations
+ * All operations use share token validation middleware
+ */
 export class ClientController {
+  /**
+   * Get comprehensive client portal data
+   * 
+   * Retrieves all project-related data for client portal display including
+   * deliverables, messages, invoices, and feedback. Also logs client access
+   * and updates project access timestamps for analytics.
+   * 
+   * @param {Request} req - Express request with shareToken parameter
+   * @param {Response} res - Express response with aggregated project data
+   */
   async getClientPortalData(req: Request, res: Response) {
     try {
       const { shareToken } = req.params;

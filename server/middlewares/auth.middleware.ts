@@ -1,7 +1,32 @@
+/**
+ * Authentication Middleware
+ * 
+ * Provides authentication and authorization middleware functions for securing
+ * API routes. Handles both freelancer authentication and client token validation
+ * with proper project access control.
+ * 
+ * Features:
+ * - Session-based authentication validation
+ * - Role-based project access control
+ * - Share token validation for client access
+ * - Project ownership verification
+ * 
+ * @module AuthMiddleware
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { projectService } from '../services';
 
-// Middleware to check if user is authenticated
+/**
+ * Middleware to check if user is authenticated
+ * 
+ * Validates that the request contains a valid user session.
+ * Used to protect freelancer-only routes that require authentication.
+ * 
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object  
+ * @param {NextFunction} next - Next middleware function
+ */
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -9,7 +34,16 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   next();
 };
 
-// Middleware to validate project access for freelancers
+/**
+ * Project access validation middleware factory
+ * 
+ * Creates middleware that validates project access based on user role.
+ * For freelancers: validates project ownership through authentication
+ * For clients: validates access through share token system
+ * 
+ * @param {string} role - Either 'freelancer' or 'client'
+ * @returns {Function} Express middleware function
+ */
 export const withProjectAccess = (role: 'freelancer' | 'client') => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {

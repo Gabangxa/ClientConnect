@@ -1,3 +1,20 @@
+/**
+ * Message Service
+ * 
+ * Business logic service for managing messaging operations between freelancers
+ * and clients. Handles message creation, threading, status management, and
+ * notification filtering to ensure proper communication flow.
+ * 
+ * Features:
+ * - Automatic thread ID generation and inheritance
+ * - Message status tracking (sent, delivered, read)
+ * - Filtered message retrieval by user type
+ * - Bulk and individual message read marking
+ * - Recent message aggregation for dashboards
+ * 
+ * @module MessageService
+ */
+
 import {
   messages,
   projects,
@@ -7,6 +24,10 @@ import {
 import { db } from "../db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
+/**
+ * Service class for message-related business logic
+ * Handles all database operations and business rules for messaging
+ */
 export class MessageService {
   async createMessage(message: InsertMessage): Promise<Message> {
     // Auto-generate threadId if not provided and no parent

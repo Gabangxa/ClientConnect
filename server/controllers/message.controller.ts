@@ -1,8 +1,38 @@
+/**
+ * Message Controller
+ * 
+ * Handles all messaging operations between freelancers and clients.
+ * Supports threaded conversations, message status tracking, and real-time
+ * communication features with proper notification handling.
+ * 
+ * Features:
+ * - Message sending/receiving with validation
+ * - Threaded conversation management
+ * - Message status tracking (read/unread)
+ * - Recent message aggregation for dashboard
+ * - Individual and bulk message marking
+ * 
+ * @module MessageController
+ */
+
 import { Request, Response } from 'express';
 import { messageService } from '../services';
 import { insertMessageSchema } from '@shared/schema';
 
+/**
+ * Controller class for handling message-related operations
+ * Provides secure messaging between freelancers and clients
+ */
 export class MessageController {
+  /**
+   * Send a message as a freelancer
+   * 
+   * Creates a new message from freelancer to client with proper validation
+   * and thread management. Automatically handles thread creation and inheritance.
+   * 
+   * @param {Request} req - Express request with projectId params and message data
+   * @param {Response} res - Express response object
+   */
   async sendMessage(req: Request, res: Response) {
     try {
       const { projectId } = req.params;

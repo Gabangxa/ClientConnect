@@ -1,3 +1,20 @@
+/**
+ * Dashboard Component
+ * 
+ * Main freelancer dashboard displaying project overview, statistics,
+ * and recent activity. Provides quick access to project management,
+ * messaging, and key metrics with real-time updates.
+ * 
+ * Features:
+ * - Project statistics and overview cards
+ * - Recent message notifications with unread tracking
+ * - Quick project creation and navigation
+ * - Real-time data refresh for messages
+ * - Responsive design with smooth animations
+ * 
+ * @module Dashboard
+ */
+
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +27,10 @@ import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import type { Project } from "@shared/schema";
 
+/**
+ * Dashboard component for authenticated freelancers
+ * Shows project overview, statistics, and recent activity
+ */
 export default function Dashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();

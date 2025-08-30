@@ -1,7 +1,17 @@
 /**
- * Header.tsx
- * - Simple top bar with brand, quick actions
- * - Comments show points of customization (avatar, logout)
+ * Header Component
+ * 
+ * Main navigation header for the freelancer dashboard.
+ * Displays branding, provides quick access to project creation,
+ * and handles user logout functionality.
+ * 
+ * Features:
+ * - Brand identity and logo display
+ * - New project creation shortcut
+ * - User logout with session cleanup
+ * - Professional styling with glassmorphism effects
+ * 
+ * @module Header
  */
 
 import { useLocation } from "wouter";

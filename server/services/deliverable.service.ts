@@ -1,3 +1,20 @@
+/**
+ * Deliverable Service
+ * 
+ * Business logic service for managing file deliverables and uploads.
+ * Handles file storage operations, ownership validation, and secure
+ * file management with hybrid storage integration.
+ * 
+ * Features:
+ * - Deliverable CRUD operations
+ * - File upload to hybrid storage system
+ * - Ownership-based deletion permissions
+ * - Download URL generation
+ * - File validation and security
+ * 
+ * @module DeliverableService
+ */
+
 import {
   deliverables,
   type Deliverable,
@@ -7,6 +24,10 @@ import { db } from "../db";
 import { eq, desc } from "drizzle-orm";
 import { storageService } from "./storage.service";
 
+/**
+ * Service class for deliverable operations
+ * Manages file uploads and deliverable lifecycle
+ */
 export class DeliverableService {
   async createDeliverable(deliverable: InsertDeliverable): Promise<Deliverable> {
     const [newDeliverable] = await db

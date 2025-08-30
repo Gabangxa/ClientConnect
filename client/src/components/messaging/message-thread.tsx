@@ -1,3 +1,21 @@
+/**
+ * Message Thread Component
+ * 
+ * Unified messaging interface supporting threaded conversations
+ * between freelancers and clients. Provides modern chat-like experience
+ * with reply functionality, read status, and message management.
+ * 
+ * Features:
+ * - Threaded message display with proper nesting
+ * - Reply functionality with context
+ * - Message status indicators (sent, delivered, read)
+ * - Priority and type-based styling
+ * - Inline message composer for replies
+ * - Real-time read status updates
+ * 
+ * @module MessageThread
+ */
+
 import { useState } from "react";
 import { format } from "date-fns";
 import { Reply, MoreVertical, Clock, Check, CheckCheck } from "lucide-react";

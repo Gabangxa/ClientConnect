@@ -1,9 +1,31 @@
 /**
- * Enhanced Authentication Controller with Security Features
+ * Authentication Controller
+ * 
+ * Handles user authentication, session management, and user profile operations
+ * for the client portal system. Works with Replit Auth (OpenID Connect) to provide
+ * secure authentication for freelancers accessing the dashboard.
+ * 
+ * Features:
+ * - User session retrieval and validation
+ * - Secure logout with session cleanup
+ * - Authentication status checking
+ * - Integration with brute force protection
+ * 
+ * @module AuthController
  */
 
 import { Request, Response } from 'express';
 
+/**
+ * Get the currently authenticated user's information
+ * 
+ * Retrieves user data from the current session and validates authentication status.
+ * Tracks successful authentication attempts for security monitoring.
+ * 
+ * @param {Request} req - Express request object with user session
+ * @param {Response} res - Express response object
+ * @returns {Object} User information and authentication status
+ */
 export const getCurrentUser = (req: Request, res: Response) => {
   try {
     // Track successful authentication
@@ -25,6 +47,15 @@ export const getCurrentUser = (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Logout current user and cleanup session
+ * 
+ * Securely logs out the user by destroying the session and clearing cookies.
+ * Ensures complete cleanup of authentication state and security cookies.
+ * 
+ * @param {Request} req - Express request object with user session
+ * @param {Response} res - Express response object
+ */
 export const logout = (req: Request, res: Response) => {
   try {
     req.logout((err) => {
@@ -55,6 +86,16 @@ export const logout = (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Check authentication status
+ * 
+ * Returns the current authentication status and user information if authenticated.
+ * Used by frontend to determine if user is logged in and show appropriate UI.
+ * 
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Object} Authentication status and user information
+ */
 export const checkAuthStatus = (req: Request, res: Response) => {
   try {
     const isAuthenticated = !!req.user;

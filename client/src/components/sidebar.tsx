@@ -1,3 +1,20 @@
+/**
+ * Sidebar Component
+ * 
+ * Navigation sidebar for project views, providing organized access
+ * to different project sections and features. Used in both client
+ * portal and freelancer project management interfaces.
+ * 
+ * Features:
+ * - Project branding and identity
+ * - Tabbed navigation system
+ * - Active state management
+ * - Professional visual design
+ * - Responsive icon and text layout
+ * 
+ * @module Sidebar
+ */
+
 import { Briefcase, Home, Clock, Folder, MessageSquare, CreditCard, Star } from "lucide-react";
 import type { Project } from "@shared/schema";
 
@@ -7,6 +24,10 @@ interface SidebarProps {
   onTabChange: (tab: string) => void;
 }
 
+/**
+ * Sidebar navigation component for project interfaces
+ * Provides tabbed navigation and project branding
+ */
 export function Sidebar({ project, activeTab, onTabChange }: SidebarProps) {
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },

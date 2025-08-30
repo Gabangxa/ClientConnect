@@ -1,7 +1,33 @@
+/**
+ * Error Handling Middleware
+ * 
+ * Centralized error handling for the Express application.
+ * Provides consistent error response formatting and proper HTTP status codes
+ * for different types of errors including validation, database, and file upload errors.
+ * 
+ * Features:
+ * - Zod validation error formatting
+ * - Database constraint error handling
+ * - File upload error processing
+ * - Structured error responses
+ * 
+ * @module ErrorMiddleware
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 
-// Global error handler middleware
+/**
+ * Global error handler middleware
+ * 
+ * Catches all unhandled errors in the Express application and formats them
+ * into consistent JSON responses with appropriate HTTP status codes.
+ * 
+ * @param {any} error - The error object from Express
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {NextFunction} next - Next middleware function
+ */
 export const errorHandler = (
   error: any, 
   req: Request, 

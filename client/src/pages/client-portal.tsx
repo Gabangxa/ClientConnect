@@ -1,3 +1,21 @@
+/**
+ * Client Portal Component
+ * 
+ * Main client-facing interface accessed through share tokens.
+ * Provides comprehensive project information, communication tools,
+ * and file management without requiring client authentication.
+ * 
+ * Features:
+ * - Token-based access validation
+ * - Real-time project data and messaging
+ * - File upload/download capabilities
+ * - Feedback and rating submission
+ * - Professional client-focused UI
+ * - Automatic data refresh
+ * 
+ * @module ClientPortal
+ */
+
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -25,6 +43,10 @@ import type { z } from "zod";
 type MessageFormData = z.infer<typeof insertMessageSchema>;
 type FeedbackFormData = z.infer<typeof insertFeedbackSchema>;
 
+/**
+ * Client portal main component
+ * Renders the complete client interface with tabbed navigation
+ */
 export default function ClientPortal() {
   const { shareToken } = useParams();
   const { toast } = useToast();

@@ -1,3 +1,20 @@
+/**
+ * Project Service
+ * 
+ * Core business logic service for managing projects, share tokens, and access control.
+ * Handles project lifecycle management, security validation, and access logging
+ * for the client portal system.
+ * 
+ * Features:
+ * - Project CRUD operations with validation
+ * - Share token generation and validation (90-day expiry)
+ * - Access logging with IP tracking
+ * - Project ownership verification
+ * - Status and progress management
+ * 
+ * @module ProjectService
+ */
+
 import {
   projects,
   accessLogs,
@@ -10,6 +27,10 @@ import { db } from "../db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+/**
+ * Service class for project-related business logic
+ * Manages all database operations and business rules for projects
+ */
 export class ProjectService {
   async createProject(project: InsertProject): Promise<Project> {
     const [newProject] = await db

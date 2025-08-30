@@ -1,7 +1,28 @@
+/**
+ * Deliverable Controller
+ * 
+ * Manages file uploads, deliverable creation, and file management operations
+ * for both freelancers and clients. Handles secure file storage with hybrid
+ * object storage system and proper access control.
+ * 
+ * Features:
+ * - Secure file upload with validation
+ * - Hybrid storage system (Object Storage + local fallback)
+ * - Role-based deliverable creation (freelancer/client)
+ * - File ownership validation for deletions
+ * - Download URL generation
+ * 
+ * @module DeliverableController
+ */
+
 import { Request, Response } from 'express';
 import { deliverableService, userService } from '../services';
 import { insertDeliverableSchema } from '@shared/schema';
 
+/**
+ * Controller class for handling deliverable operations
+ * Manages secure file operations and deliverable lifecycle
+ */
 export class DeliverableController {
   async uploadDeliverable(req: Request, res: Response) {
     try {
