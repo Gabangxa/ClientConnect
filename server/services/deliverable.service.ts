@@ -23,6 +23,7 @@ import {
 import { db } from "../db";
 import { eq, desc } from "drizzle-orm";
 import { storageService } from "./storage.service";
+import fs from 'fs';
 
 /**
  * Service class for deliverable operations
@@ -105,7 +106,6 @@ export class DeliverableService {
         buffer = file.buffer;
       } else if (file.path) {
         // Disk storage - read file from path
-        const fs = await import('fs');
         buffer = await fs.promises.readFile(file.path);
       } else {
         throw new Error("No file data available - file must have either buffer or path");
