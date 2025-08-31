@@ -79,7 +79,7 @@ export class ProjectController {
       // Get related data
       const [deliverables, messages, invoices, feedback] = await Promise.all([
         deliverableService.getDeliverablesByProject(projectId),
-        messageService.getMessagesByProject(projectId),
+        messageService.getMessagesWithAttachments(projectId),
         invoiceService.getInvoicesByProject(projectId),
         feedbackService.getFeedbackByProject(projectId),
       ]);
