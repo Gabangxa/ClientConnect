@@ -79,11 +79,42 @@ export default function FreelancerClientView() {
 
   // Send message mutation for unified MessageThread
   const sendMessageMutation = useMutation({
-    mutationFn: async (data: MessageFormData) => {
-      const response = await apiRequest("POST", `/api/projects/${projectId}/messages`, {
-        ...data,
-      });
-      return response.json();
+    mutationFn: async (data: MessageFormData & { attachments?: File[] }) => {
+      if (data.attachments && data.attachments.length > 0) {
+        // Use FormData for file uploads
+        const formData = new FormData();
+        formData.append('content', data.content);
+        formData.append('senderName', data.senderName || 'Freelancer');
+        formData.append('senderType', data.senderType || 'freelancer');
+        formData.append('messageType', data.messageType || 'text');
+        formData.append('priority', data.priority || 'normal');
+        formData.append('status', data.status || 'sent');
+        
+        if (data.parentMessageId) formData.append('parentMessageId', data.parentMessageId);
+        if (data.threadId) formData.append('threadId', data.threadId);
+        
+        // Add files
+        data.attachments.forEach((file) => {
+          formData.append('attachments', file);
+        });
+
+        const response = await fetch(`/api/projects/${projectId}/messages`, {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to send message with attachments');
+        }
+        
+        return response.json();
+      } else {
+        // Use JSON for text-only messages
+        const response = await apiRequest("POST", `/api/projects/${projectId}/messages`, {
+          ...data,
+        });
+        return response.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "messages"] });
@@ -325,7 +356,8 @@ export default function FreelancerClientView() {
                     threadId: data.threadId,
                     messageType: data.messageType || 'text',
                     priority: data.priority || 'normal',
-                    status: 'sent'
+                    status: 'sent',
+                    attachments: data.attachments
                   });
                 }}
                 isLoading={sendMessageMutation.isPending}

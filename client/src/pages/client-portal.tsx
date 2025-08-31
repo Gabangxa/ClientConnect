@@ -85,11 +85,42 @@ export default function ClientPortal() {
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async (data: MessageFormData) => {
-      const response = await apiRequest("POST", `/api/client/${shareToken}/messages`, {
-        ...data,
-      });
-      return response.json();
+    mutationFn: async (data: MessageFormData & { attachments?: File[] }) => {
+      if (data.attachments && data.attachments.length > 0) {
+        // Use FormData for file uploads
+        const formData = new FormData();
+        formData.append('content', data.content);
+        formData.append('senderName', data.senderName || 'Client');
+        formData.append('senderType', data.senderType || 'client');
+        formData.append('messageType', data.messageType || 'text');
+        formData.append('priority', data.priority || 'normal');
+        formData.append('status', data.status || 'sent');
+        
+        if (data.parentMessageId) formData.append('parentMessageId', data.parentMessageId);
+        if (data.threadId) formData.append('threadId', data.threadId);
+        
+        // Add files
+        data.attachments.forEach((file) => {
+          formData.append('attachments', file);
+        });
+
+        const response = await fetch(`/api/client/${shareToken}/messages`, {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to send message with attachments');
+        }
+        
+        return response.json();
+      } else {
+        // Use JSON for text-only messages
+        const response = await apiRequest("POST", `/api/client/${shareToken}/messages`, {
+          ...data,
+        });
+        return response.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/client", shareToken] });
@@ -500,6 +531,7 @@ export default function ClientPortal() {
                   messages={messages}
                   currentUserType="client"
                   currentUserName={project.clientName}
+                  shareToken={shareToken}
                   onSendMessage={(data) => {
                     sendMessageMutation.mutate({
                       projectId: project.id,
@@ -510,7 +542,8 @@ export default function ClientPortal() {
                       threadId: data.threadId,
                       messageType: data.messageType || 'text',
                       priority: data.priority || 'normal',
-                      status: 'sent'
+                      status: 'sent',
+                      attachments: data.attachments
                     });
                   }}
                   isLoading={sendMessageMutation.isPending}
