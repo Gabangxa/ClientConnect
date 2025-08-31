@@ -43,9 +43,12 @@ The application features distinct interfaces for freelancers and clients. The cl
 - **Permission System**: Role-based access control (freelancer/client/guest) with dual API endpoints (`/api/projects` for freelancers, `/api/client` for token-based client access). Granular permissions for deliverables, messages, invoices, and feedback.
 - **Client Interface**: Dedicated client portal with no account creation needed, accessible via share link. Allows clients to view project dashboards, download/upload files, send messages, review invoices (read-only), and provide feedback.
 - **Dual-Access System**: Freelancers can view client portals with an authenticated management view (`/project/:projectId/client-view`).
-- **Unified Messaging System**: Threaded messaging with `parentMessageId` and `threadId`, message status, priority levels, and shared `MessageThread`/`MessageComposer` components.
+- **Unified Messaging System**: Threaded messaging with `parentMessageId` and `threadId`, message status, priority levels, and shared `MessageThread`/`MessageComposer` components. Includes comprehensive file attachment support with drag-and-drop upload, download functionality, and proper security validation.
 - **Hybrid Storage System**: Integrates Replit Object Storage with graceful local storage fallback for file uploads.
 - **Security Implementation**: Comprehensive file upload validation (extension/MIME type, secure filename generation), JWT-based tokens for client access, endpoint-specific rate limiting, brute force protection, secure HTTP headers, and upgraded session security.
+
+### Recent Changes
+**File Attachment System for Messaging (August 2025)**: Implemented comprehensive file attachment functionality for the messaging system. Added `message_attachments` table with proper indexing and relations, created `MessageAttachmentService` for file operations, extended message API endpoints with secure file upload/download, and updated `MessageComposer` and `MessageThread` components with drag-and-drop support, attachment display, and download functionality. System supports up to 5 attachments per message with 10MB size limit per file and proper security validation.
 
 ### System Design Choices
 The application adopts a monorepo structure, separating client, server, and shared code for maintainability and scalability. A service-oriented architecture is used for the backend to promote separation of concerns. Error handling is centralized, and comprehensive documentation (JSDoc, component docs) is provided for developer onboarding.

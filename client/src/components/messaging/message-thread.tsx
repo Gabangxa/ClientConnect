@@ -18,7 +18,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Reply, MoreVertical, Clock, Check, CheckCheck } from "lucide-react";
+import { Reply, MoreVertical, Clock, Check, CheckCheck, Paperclip, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -28,6 +28,14 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { MessageComposer } from "./message-composer";
+
+interface MessageAttachment {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  filePath: string;
+  mimeType: string;
+}
 
 interface Message {
   id: string;
@@ -43,6 +51,7 @@ interface Message {
   createdAt: string;
   readAt?: string;
   editedAt?: string;
+  attachments?: MessageAttachment[];
 }
 
 interface MessageThreadProps {
@@ -55,9 +64,11 @@ interface MessageThreadProps {
     threadId?: string;
     messageType?: string;
     priority?: string;
+    attachments?: File[];
   }) => void;
   onMarkAsRead?: (messageId: string) => void;
   isLoading?: boolean;
+  shareToken?: string; // For client portal access
 }
 
 export function MessageThread({ 
@@ -66,9 +77,42 @@ export function MessageThread({
   currentUserName,
   onSendMessage, 
   onMarkAsRead,
-  isLoading = false 
+  isLoading = false,
+  shareToken
 }: MessageThreadProps) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const handleAttachmentDownload = async (attachment: MessageAttachment) => {
+    try {
+      const downloadUrl = shareToken 
+        ? `/api/client/${shareToken}/messages/attachments/${attachment.id}/download`
+        : `/api/messages/attachments/${attachment.id}/download`;
+      
+      const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download file');
+    }
+  };
   
   const getMessageStatusIcon = (message: Message) => {
     if (message.senderType === currentUserType) {
@@ -131,6 +175,54 @@ export function MessageThread({
             }`}>
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               
+              {/* Message Attachments */}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {message.attachments.map((attachment, index) => (
+                    <div
+                      key={attachment.id}
+                      className={`flex items-center justify-between p-2 rounded border ${
+                        isFromCurrentUser 
+                          ? 'bg-primary-foreground/10 border-primary-foreground/20' 
+                          : 'bg-background/50 border-border/50'
+                      }`}
+                      data-testid={`message-attachment-${index}`}
+                    >
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <Paperclip className={`h-4 w-4 flex-shrink-0 ${
+                          isFromCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                        }`} />
+                        <div className="min-w-0">
+                          <div className={`text-sm font-medium truncate ${
+                            isFromCurrentUser ? 'text-primary-foreground' : 'text-foreground'
+                          }`}>
+                            {attachment.fileName}
+                          </div>
+                          <div className={`text-xs ${
+                            isFromCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                          }`}>
+                            {formatFileSize(attachment.fileSize)}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAttachmentDownload(attachment)}
+                        className={`h-8 w-8 p-0 flex-shrink-0 ${
+                          isFromCurrentUser 
+                            ? 'hover:bg-primary-foreground/10 text-primary-foreground/70 hover:text-primary-foreground' 
+                            : 'hover:bg-background/50 text-muted-foreground hover:text-foreground'
+                        }`}
+                        data-testid={`button-download-attachment-${index}`}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
               <div className={`flex items-center justify-between mt-2 ${isFromCurrentUser ? 'flex-row-reverse' : ''}`}>
                 <div className="flex items-center space-x-1">
                   {getMessageStatusIcon(message)}
@@ -177,12 +269,13 @@ export function MessageThread({
             {replyingTo === message.id && (
               <div className="mt-3">
                 <MessageComposer
-                  onSend={(content: string, priority?: string) => {
+                  onSend={(content: string, priority?: string, attachments?: File[]) => {
                     onSendMessage({
                       content,
                       parentMessageId: message.id,
                       threadId: message.threadId,
-                      priority: priority || 'normal'
+                      priority: priority || 'normal',
+                      attachments
                     });
                     setReplyingTo(null);
                   }}
@@ -190,6 +283,8 @@ export function MessageThread({
                   placeholder={`Reply to ${message.senderName}...`}
                   isReply={true}
                   isLoading={isLoading}
+                  allowAttachments={true}
+                  maxAttachments={3}
                 />
               </div>
             )}
@@ -227,14 +322,17 @@ export function MessageThread({
       
       {/* Main Message Composer */}
       <MessageComposer
-        onSend={(content: string, priority?: string) => {
+        onSend={(content: string, priority?: string, attachments?: File[]) => {
           onSendMessage({
             content,
-            priority: priority || 'normal'
+            priority: priority || 'normal',
+            attachments
           });
         }}
         placeholder="Type your message..."
         isLoading={isLoading}
+        allowAttachments={true}
+        maxAttachments={5}
       />
     </div>
   );

@@ -147,12 +147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/:projectId/deliverables", isAuthenticated, withProjectAccess('freelancer'), deliverableController.getDeliverables);
   app.delete("/api/deliverables/:deliverableId", isAuthenticated, deliverableController.deleteDeliverable);
 
-  // Message routes (freelancer) with rate limiting
+  // Message routes (freelancer) with rate limiting and file upload support
   app.post("/api/projects/:projectId/messages", 
     rateLimiters.messaging,
     isAuthenticated, 
     validateParams(projectParamsSchema),
-    validateBody(createMessageBodySchema),
+    upload.array('attachments', 5), // Support up to 5 attachments
+    validateFileUpload,
     withProjectAccess('freelancer'), 
     messageController.sendMessage
   );
@@ -173,6 +174,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     messageController.markSingleMessageAsRead
   );
+  
+  // Message attachment download routes
+  app.get("/api/messages/attachments/:attachmentId/download",
+    isAuthenticated,
+    messageController.downloadAttachment
+  );
 
   // Invoice routes (freelancer)
   app.post("/api/projects/:projectId/invoices", isAuthenticated, withProjectAccess('freelancer'), invoiceController.createInvoice);
@@ -190,7 +197,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/client/:shareToken/messages", 
     rateLimiters.messaging,
     withProjectAccess('client'), 
-    clientController.sendMessage
+    upload.array('attachments', 5), // Support up to 5 attachments
+    validateFileUpload,
+    messageController.sendClientMessage
   );
   app.post("/api/client/:shareToken/messages/mark-read", 
     withProjectAccess('client'), 
@@ -199,6 +208,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/client/:shareToken/feedback", 
     withProjectAccess('client'), 
     clientController.submitFeedback
+  );
+  
+  // Client attachment download route
+  app.get("/api/client/:shareToken/messages/attachments/:attachmentId/download",
+    withProjectAccess('client'),
+    messageController.downloadAttachment
   );
 
   // Client deliverable routes with file upload security

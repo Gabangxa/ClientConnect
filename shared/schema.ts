@@ -185,6 +185,23 @@ export const feedback = pgTable("feedback", {
   index("idx_feedback_project_rating").on(table.projectId, table.rating),
 ]);
 
+export const messageAttachments = pgTable("message_attachments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").notNull().references(() => messages.id, { onDelete: 'cascade' }),
+  filePath: varchar("file_path").notNull(),
+  fileName: varchar("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: varchar("mime_type").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+}, (table) => [
+  // Indexes for attachment queries
+  index("idx_message_attachments_message_id").on(table.messageId),
+  index("idx_message_attachments_uploaded_at").on(table.uploadedAt),
+  index("idx_message_attachments_file_path").on(table.filePath),
+  // Composite index for message attachments by upload time
+  index("idx_message_attachments_message_uploaded").on(table.messageId, table.uploadedAt),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   projects: many(projects),
@@ -226,6 +243,7 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
     references: [messages.id],
   }),
   replies: many(messages),
+  attachments: many(messageAttachments),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one }) => ({
@@ -239,6 +257,13 @@ export const feedbackRelations = relations(feedback, ({ one }) => ({
   project: one(projects, {
     fields: [feedback.projectId],
     references: [projects.id],
+  }),
+}));
+
+export const messageAttachmentsRelations = relations(messageAttachments, ({ one }) => ({
+  message: one(messages, {
+    fields: [messageAttachments.messageId],
+    references: [messages.id],
   }),
 }));
 
@@ -293,6 +318,11 @@ export const insertFeedbackSchema = createInsertSchema(feedback).omit({
   createdAt: true,
 });
 
+export const insertMessageAttachmentSchema = createInsertSchema(messageAttachments).omit({
+  id: true,
+  uploadedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -308,3 +338,5 @@ export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertAccessLog = z.infer<typeof insertAccessLogSchema>;
 export type AccessLog = typeof accessLogs.$inferSelect;
+export type InsertMessageAttachment = z.infer<typeof insertMessageAttachmentSchema>;
+export type MessageAttachment = typeof messageAttachments.$inferSelect;

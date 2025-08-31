@@ -18,11 +18,14 @@
 import {
   messages,
   projects,
+  messageAttachments,
   type Message,
   type InsertMessage,
+  type MessageAttachment,
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, desc, and, sql } from "drizzle-orm";
+import { messageAttachmentService } from "./messageAttachment.service";
 
 /**
  * Service class for message-related business logic
@@ -57,12 +60,66 @@ export class MessageService {
     return newMessage;
   }
 
+  async createMessageWithAttachments(
+    message: InsertMessage, 
+    attachmentFiles?: Express.Multer.File[]
+  ): Promise<Message & { attachments: MessageAttachment[] }> {
+    // Create the message first
+    const newMessage = await this.createMessage(message);
+    
+    // Handle file uploads if provided
+    const attachments: MessageAttachment[] = [];
+    if (attachmentFiles && attachmentFiles.length > 0) {
+      for (const file of attachmentFiles) {
+        try {
+          // Upload file to storage
+          const { filePath, downloadUrl } = await messageAttachmentService.uploadFileToStorage(
+            file, 
+            newMessage.id, 
+            newMessage.projectId
+          );
+          
+          // Create attachment record
+          const attachment = await messageAttachmentService.createAttachment({
+            messageId: newMessage.id,
+            filePath,
+            fileName: file.originalname,
+            fileSize: file.size,
+            mimeType: file.mimetype,
+          });
+          
+          attachments.push(attachment);
+        } catch (error) {
+          console.error(`Failed to upload attachment ${file.originalname}:`, error);
+          // Continue with other attachments even if one fails
+        }
+      }
+    }
+    
+    return { ...newMessage, attachments };
+  }
+
   async getMessagesByProject(projectId: string): Promise<Message[]> {
     return await db
       .select()
       .from(messages)
       .where(eq(messages.projectId, projectId))
       .orderBy(desc(messages.createdAt));
+  }
+
+  async getMessagesWithAttachments(projectId: string): Promise<(Message & { attachments: MessageAttachment[] })[]> {
+    // Get all messages for the project
+    const projectMessages = await this.getMessagesByProject(projectId);
+    
+    // Get attachments for each message
+    const messagesWithAttachments = await Promise.all(
+      projectMessages.map(async (message) => {
+        const attachments = await messageAttachmentService.getAttachmentsByMessage(message.id);
+        return { ...message, attachments };
+      })
+    );
+    
+    return messagesWithAttachments;
   }
 
   async getMessageThreads(projectId: string): Promise<any[]> {
@@ -162,6 +219,32 @@ export class MessageService {
       .from(messages)
       .where(eq(messages.threadId, threadId))
       .orderBy(messages.createdAt);
+  }
+
+  async deleteMessage(messageId: string): Promise<void> {
+    // First delete all attachments for this message (includes file cleanup)
+    await messageAttachmentService.deleteAttachmentsByMessage(messageId);
+    
+    // Then delete the message itself
+    await db
+      .delete(messages)
+      .where(eq(messages.id, messageId));
+  }
+
+  async getMessageById(messageId: string): Promise<Message | undefined> {
+    const [message] = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, messageId));
+    return message;
+  }
+
+  async getMessageWithAttachments(messageId: string): Promise<(Message & { attachments: MessageAttachment[] }) | undefined> {
+    const message = await this.getMessageById(messageId);
+    if (!message) return undefined;
+    
+    const attachments = await messageAttachmentService.getAttachmentsByMessage(messageId);
+    return { ...message, attachments };
   }
 }
 

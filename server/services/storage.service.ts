@@ -195,6 +195,21 @@ export class StorageService {
   }
 
   /**
+   * Generate a unique file path for storing message attachments
+   * @param originalName - The original filename
+   * @param messageId - The message ID
+   * @param projectId - The project ID
+   * @returns A unique file path for message attachments
+   */
+  generateMessageAttachmentPath(originalName: string, messageId: string, projectId: string): string {
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    
+    return `projects/${projectId}/messages/${messageId}/attachments/${timestamp}_${randomSuffix}_${sanitizedName}`;
+  }
+
+  /**
    * Get the download URL for a file (in this case, it's just the file path)
    * @param filePath - The path/key of the file
    * @returns The download URL/path
