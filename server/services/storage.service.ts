@@ -70,17 +70,29 @@ export class StorageService {
     await this.ensureInitialized();
     
     try {
+      console.log(`Storage service: Uploading to ${this.useObjectStorage ? 'Object Storage' : 'Local Storage'}`);
+      
       if (this.useObjectStorage && this.client) {
         await this.client.uploadFromBytes(filePath, buffer);
+        console.log(`✅ File uploaded to Object Storage: ${filePath}`);
         return filePath;
       } else {
         // Local storage fallback
+        this.ensureLocalDirectory(); // Ensure directory exists
         const localPath = path.join(this.localStorageDir, path.basename(filePath));
         await fs.promises.writeFile(localPath, buffer);
+        console.log(`✅ File uploaded to Local Storage: ${localPath}`);
         return path.basename(filePath); // Return just filename for local storage
       }
     } catch (error) {
       console.error('Error uploading file:', error);
+      console.error('Upload details:', {
+        filePath,
+        bufferSize: buffer.length,
+        useObjectStorage: this.useObjectStorage,
+        hasClient: !!this.client,
+        localStorageDir: this.localStorageDir
+      });
       throw new Error('Failed to upload file');
     }
   }

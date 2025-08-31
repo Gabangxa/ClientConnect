@@ -97,14 +97,34 @@ export class DeliverableService {
       // Use secure filename if available, otherwise generate one
       const secureFilename = (file as any).secureFilename || file.originalname;
       const filePath = storageService.generateFilePath(secureFilename, projectId, uploaderType);
-      const buffer = Buffer.from(file.buffer || await require('fs').promises.readFile(file.path));
       
+      // Handle different multer storage configurations
+      let buffer: Buffer;
+      if (file.buffer) {
+        // Memory storage - file is already in buffer
+        buffer = file.buffer;
+      } else if (file.path) {
+        // Disk storage - read file from path
+        const fs = await import('fs');
+        buffer = await fs.promises.readFile(file.path);
+      } else {
+        throw new Error("No file data available - file must have either buffer or path");
+      }
+      
+      console.log(`Uploading file: ${secureFilename}, size: ${buffer.length} bytes`);
       await storageService.uploadFile(filePath, buffer, file.mimetype);
       const downloadUrl = storageService.getDownloadUrl(filePath);
       
       return { filePath, downloadUrl };
     } catch (error) {
       console.error("Error uploading file to storage:", error);
+      console.error("File details:", {
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        hasBuffer: !!file.buffer,
+        hasPath: !!file.path
+      });
       throw new Error("Failed to upload file");
     }
   }
