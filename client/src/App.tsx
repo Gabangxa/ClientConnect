@@ -31,11 +31,18 @@ function Router() {
             <Route path="/client/:token" component={ClientView} />
             
             {isLoading || !isAuthenticated ? (
-              <Route path="/" component={Landing} />
+              <>
+                <Route path="/" component={Landing} />
+                <Route path="/dashboard" component={Landing} />
+                <Route path="/create-project" component={Landing} />
+                <Route path="/project/:projectId" component={Landing} />
+              </>
             ) : (
               <>
                 <Route path="/" component={Dashboard} />
+                <Route path="/dashboard" component={Dashboard} />
                 <Route path="/create-project" component={CreateProject} />
+                <Route path="/project/:projectId" component={FreelancerClientView} />
                 <Route path="/project/:projectId/client-view" component={FreelancerClientView} />
               </>
             )}
