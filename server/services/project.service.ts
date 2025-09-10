@@ -33,11 +33,15 @@ import { randomUUID } from "crypto";
  */
 export class ProjectService {
   async createProject(project: InsertProject): Promise<Project> {
+    const tokenExpiry = new Date();
+    tokenExpiry.setDate(tokenExpiry.getDate() + 90); // 90 days from now
+    
     const [newProject] = await db
       .insert(projects)
       .values({
         ...project,
         shareToken: randomUUID(),
+        tokenExpiry: tokenExpiry,
         status: 'active',
         progress: 0,
       })
@@ -85,11 +89,21 @@ export class ProjectService {
       return { valid: false };
     }
 
-    // Check if token has expired (90 days)
-    const tokenAge = Date.now() - new Date(project.createdAt!).getTime();
-    const maxAge = 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
+    // Ensure tokenExpiry exists and is valid
+    if (!project.tokenExpiry) {
+      return { valid: false };
+    }
+
+    // Check if token has expired using the actual tokenExpiry field
+    const now = new Date();
+    const tokenExpiry = new Date(project.tokenExpiry);
     
-    if (tokenAge > maxAge) {
+    // Ensure tokenExpiry is a valid date
+    if (isNaN(tokenExpiry.getTime())) {
+      return { valid: false };
+    }
+    
+    if (now > tokenExpiry) {
       return { valid: false };
     }
 
@@ -98,7 +112,13 @@ export class ProjectService {
 
   async regenerateShareToken(projectId: string, freelancerId: string): Promise<Project> {
     const newToken = randomUUID();
-    return await this.updateProject(projectId, { shareToken: newToken });
+    const newExpiry = new Date();
+    newExpiry.setDate(newExpiry.getDate() + 90); // 90 days from now
+    
+    return await this.updateProject(projectId, { 
+      shareToken: newToken,
+      tokenExpiry: newExpiry
+    });
   }
 
   async logAccess(accessLog: InsertAccessLog): Promise<AccessLog> {
