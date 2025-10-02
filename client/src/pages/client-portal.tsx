@@ -60,7 +60,7 @@ export default function ClientPortal() {
     enabled: !!shareToken,
     refetchInterval: 30000, // Auto-refresh every 30 seconds for new messages
     refetchOnWindowFocus: true, // Refresh when window regains focus
-    staleTime: 10000, // Consider data stale after 10 seconds
+    staleTime: 0, // Always refetch on invalidation for immediate message updates
   });
 
   const feedbackForm = useForm<FeedbackFormData>({

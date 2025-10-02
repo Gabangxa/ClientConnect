@@ -138,10 +138,32 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   }
 
   const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
+  const REFRESH_BUFFER_SECONDS = 5 * 60; // 5 minutes buffer
+  const timeUntilExpiry = user.expires_at - now;
+
+  // If token is still valid with buffer time, proceed immediately
+  if (timeUntilExpiry > REFRESH_BUFFER_SECONDS) {
     return next();
   }
 
+  // If token is about to expire (within buffer) but not yet expired, 
+  // allow request through and refresh in background
+  if (timeUntilExpiry > 0) {
+    // Proceed immediately without blocking
+    next();
+    
+    // Refresh token in background (non-blocking)
+    const refreshToken = user.refresh_token;
+    if (refreshToken) {
+      getOidcConfig()
+        .then(config => client.refreshTokenGrant(config, refreshToken))
+        .then(tokenResponse => updateUserSession(user, tokenResponse))
+        .catch(error => console.error('Background token refresh failed:', error));
+    }
+    return;
+  }
+
+  // Token is expired - must refresh synchronously
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
     res.status(401).json({ message: "Unauthorized" });

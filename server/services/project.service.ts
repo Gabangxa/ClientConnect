@@ -130,17 +130,12 @@ export class ProjectService {
   }
 
   async updateProjectAccess(projectId: string): Promise<void> {
-    // Get current access count
-    const currentCount = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(accessLogs)
-      .where(eq(accessLogs.projectId, projectId));
-    
+    // Increment access count directly without expensive COUNT query
     await db
       .update(projects)
       .set({
         lastAccessed: new Date(),
-        accessCount: (currentCount[0]?.count || 0) + 1,
+        accessCount: sql`COALESCE(access_count, 0) + 1`,
       })
       .where(eq(projects.id, projectId));
   }
