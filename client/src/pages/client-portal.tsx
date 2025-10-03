@@ -64,6 +64,14 @@ export default function ClientPortal() {
     staleTime: 0, // Always refetch on invalidation for immediate message updates
   });
 
+  // Enable desktop notifications for incoming messages
+  // Must be called before any early returns to follow React hooks rules
+  useMessageNotifications({
+    messages: portalData?.messages || [],
+    currentUserType: 'client',
+    enabled: !!portalData?.messages,
+  });
+
   const feedbackForm = useForm<FeedbackFormData>({
     resolver: zodResolver(insertFeedbackSchema.omit({ projectId: true })),
     defaultValues: {
@@ -201,13 +209,6 @@ export default function ClientPortal() {
   }
 
   const { project, deliverables, messages, invoices, feedback } = portalData;
-  
-  // Enable desktop notifications for incoming messages
-  useMessageNotifications({
-    messages,
-    currentUserType: 'client',
-    enabled: true,
-  });
   
   // Calculate stats
   const filesShared = deliverables.length;
