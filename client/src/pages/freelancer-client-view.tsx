@@ -15,6 +15,7 @@ import { ArrowLeft, ExternalLink, Eye, FileText, MessageSquare, CreditCard, Star
 import { MessageThread } from "@/components/messaging/message-thread";
 import { format, isValid } from "date-fns";
 import type { z } from "zod";
+import { useMessageNotifications } from "@/hooks/use-message-notifications";
 
 type MessageFormData = z.infer<typeof insertMessageSchema>;
 
@@ -74,6 +75,13 @@ export default function FreelancerClientView() {
 
   const { data: feedback = [] } = useQuery<any[]>({
     queryKey: ["/api/projects", projectId, "feedback"],
+    enabled: !!project,
+  });
+
+  // Enable desktop notifications for incoming messages
+  useMessageNotifications({
+    messages,
+    currentUserType: 'freelancer',
     enabled: !!project,
   });
 
