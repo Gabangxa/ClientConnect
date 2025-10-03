@@ -39,6 +39,7 @@ import { Bell, Download, Send, Star, FileText, Clock, MessageSquare, CreditCard,
 import { MessageThread } from "@/components/messaging/message-thread";
 import { format } from "date-fns";
 import type { z } from "zod";
+import { useMessageNotifications } from "@/hooks/use-message-notifications";
 
 type MessageFormData = z.infer<typeof insertMessageSchema>;
 type FeedbackFormData = z.infer<typeof insertFeedbackSchema>;
@@ -200,6 +201,13 @@ export default function ClientPortal() {
   }
 
   const { project, deliverables, messages, invoices, feedback } = portalData;
+  
+  // Enable desktop notifications for incoming messages
+  useMessageNotifications({
+    messages,
+    currentUserType: 'client',
+    enabled: true,
+  });
   
   // Calculate stats
   const filesShared = deliverables.length;
