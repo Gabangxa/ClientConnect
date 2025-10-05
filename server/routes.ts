@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./googleAuth";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -106,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
   app.post("/api/auth/refresh-token", refreshToken);
   
-  // Note: Login protection is handled in replitAuth middleware
+  // Note: Login protection is handled in googleAuth middleware
 
   // Freelancer routes (authenticated)
   app.post("/api/projects", 
