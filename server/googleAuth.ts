@@ -23,8 +23,8 @@ export function getSession() {
     rolling: true,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'lax',
       maxAge: sessionTtl,
     },
   });
@@ -47,7 +47,7 @@ export async function setupAuth(app: Express) {
   app.use(passport.session());
 
   const callbackURL = process.env.GOOGLE_CALLBACK_URL || 
-    `${process.env.NODE_ENV === 'production' ? 'https' : 'http'}://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}/api/auth/google/callback`;
+    `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}/api/auth/google/callback`;
 
   passport.use(
     new GoogleStrategy(
