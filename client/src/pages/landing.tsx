@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Briefcase, FileText, MessageSquare, CreditCard, Star, Shield } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 
 export default function Landing() {
   return (
@@ -16,15 +17,22 @@ export default function Landing() {
               Share deliverables, track invoices, and communicate with clients through 
               branded, professional dashboards that build trust and streamline your workflow.
             </p>
-            <Button 
-              size="lg" 
-              variant="secondary"
-              onClick={() => window.location.href = "/api/login"}
-              className="text-lg px-8 py-3"
-            >
-              <Briefcase className="mr-2 h-5 w-5" />
-              Start Your Free Portal
-            </Button>
+            <div className="flex flex-col items-center gap-3">
+              <Button 
+                size="lg" 
+                variant="secondary"
+                onClick={() => window.location.href = "/api/login"}
+                className="text-lg px-8 py-3"
+                data-testid="button-start-portal"
+              >
+                <Briefcase className="mr-2 h-5 w-5" />
+                Start Your Free Portal
+              </Button>
+              <p className="text-sm text-white/80 flex items-center gap-2">
+                <SiGoogle className="h-4 w-4" />
+                Sign in with Google, GitHub, or Email
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -173,14 +181,21 @@ export default function Landing() {
           <p className="text-xl mb-8 text-blue-100">
             Join thousands of freelancers who've elevated their client experience
           </p>
-          <Button 
-            size="lg" 
-            variant="secondary"
-            onClick={() => window.location.href = "/api/login"}
-            className="text-lg px-8 py-3"
-          >
-            Get Started Now
-          </Button>
+          <div className="flex flex-col items-center gap-3">
+            <Button 
+              size="lg" 
+              variant="secondary"
+              onClick={() => window.location.href = "/api/login"}
+              className="text-lg px-8 py-3"
+              data-testid="button-get-started"
+            >
+              Get Started Now
+            </Button>
+            <p className="text-sm text-white/80 flex items-center gap-2">
+              <SiGoogle className="h-4 w-4" />
+              Sign in with Google, GitHub, or Email
+            </p>
+          </div>
         </div>
       </div>
     </div>

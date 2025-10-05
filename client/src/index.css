@@ -150,3 +150,18 @@ html, body, #root {
   background-color: hsla(var(--primary), 0.1);
   box-shadow: 0 10px 15px -3px hsla(var(--primary), 0.1);
 }
+
+/* Hide Replit Auth auto-generated UI elements */
+/* These are injected by Replit's authentication system and duplicate our custom header */
+[data-replit-auth-ui],
+[data-replit-ui],
+.replit-auth-ui,
+.replit-ui-header,
+div[style*="position: fixed"][style*="top: 0"] > a[href="/api/login"],
+div[style*="position: fixed"][style*="top: 0"] > button,
+body > div:first-child:has(a[href="/api/logout"]),
+body > div:has(> a[href*="New Project"]),
+body > div:has(> button:contains("Logout")),
+nav:has(a[href="/api/logout"]) {
+  display: none !important;
+}

@@ -47,6 +47,7 @@ export default function Header() {
           {/* Example CTA — replace with real user avatar + menu */}
           <button
             onClick={handleNewProject}
+            data-testid="button-new-project"
             className="inline-flex items-center gap-2 bg-white glass px-3 py-2 rounded-lg soft-shadow hover:scale-[1.02] transition-transform"
             aria-label="New project"
           >
@@ -55,6 +56,7 @@ export default function Header() {
 
           <button
             onClick={handleLogout}
+            data-testid="button-logout"
             className="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition"
             aria-label="Logout"
           >
