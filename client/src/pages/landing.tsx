@@ -21,16 +21,15 @@ export default function Landing() {
               <Button 
                 size="lg" 
                 variant="secondary"
-                onClick={() => window.location.href = "/api/login"}
+                onClick={() => window.location.href = "/api/auth/google"}
                 className="text-lg px-8 py-3"
                 data-testid="button-start-portal"
               >
-                <Briefcase className="mr-2 h-5 w-5" />
-                Start Your Free Portal
+                <SiGoogle className="mr-2 h-5 w-5" />
+                Sign in with Google
               </Button>
-              <p className="text-sm text-white/80 flex items-center gap-2">
-                <SiGoogle className="h-4 w-4" />
-                Sign in with Google, GitHub, or Email
+              <p className="text-sm text-white/80">
+                Secure authentication powered by Google
               </p>
             </div>
           </div>
@@ -185,15 +184,15 @@ export default function Landing() {
             <Button 
               size="lg" 
               variant="secondary"
-              onClick={() => window.location.href = "/api/login"}
+              onClick={() => window.location.href = "/api/auth/google"}
               className="text-lg px-8 py-3"
               data-testid="button-get-started"
             >
-              Get Started Now
+              <SiGoogle className="mr-2 h-5 w-5" />
+              Sign in with Google
             </Button>
-            <p className="text-sm text-white/80 flex items-center gap-2">
-              <SiGoogle className="h-4 w-4" />
-              Sign in with Google, GitHub, or Email
+            <p className="text-sm text-white/80">
+              Secure authentication powered by Google
             </p>
           </div>
         </div>
