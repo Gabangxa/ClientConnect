@@ -22,7 +22,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Briefcase, Users, FileText, MessageSquare } from "lucide-react";
+import { Plus, Briefcase, Users, FileText, MessageSquare, RefreshCw, AlertTriangle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import type { Project } from "@shared/schema";
@@ -64,6 +64,43 @@ export default function Dashboard() {
     },
   });
 
+  // Regenerate share token mutation
+  const regenerateTokenMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      const response = await apiRequest("POST", `/api/projects/${projectId}/regenerate-token`, {});
+      return response.json();
+    },
+    onSuccess: async (data) => {
+      // Refresh projects list to get new token
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      
+      // Try to copy new link to clipboard
+      const url = `${window.location.origin}/client/${data.shareToken}`;
+      
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Token Regenerated!",
+          description: "New share link has been generated and copied to clipboard. Valid for 90 days.",
+        });
+      } catch (clipboardError) {
+        // Clipboard failed, show the URL for manual copy
+        toast({
+          title: "Token Regenerated - Copy Failed",
+          description: `Link generated but couldn't copy. Use 'Copy Link' button or copy manually: ${url}`,
+          variant: "destructive",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to regenerate share token. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Redirect to home if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -93,6 +130,21 @@ export default function Dashboard() {
   const totalProjects = projects.length;
   const activeProjects = projects.filter(p => p.status === 'active').length;
   const completedProjects = projects.filter(p => p.status === 'completed').length;
+
+  // Helper function to check if token is expired or expiring soon
+  const getTokenStatus = (tokenExpiry: Date | null | undefined) => {
+    if (!tokenExpiry) return { expired: true, expiringSoon: false, daysLeft: 0 };
+    
+    const now = new Date();
+    const expiry = new Date(tokenExpiry);
+    const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return {
+      expired: now > expiry,
+      expiringSoon: daysLeft <= 7 && daysLeft > 0,
+      daysLeft: Math.max(0, daysLeft)
+    };
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -315,54 +367,121 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="space-y-4">
-                {projects.map((project) => (
-                  <div key={project.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-slate-900">{project.name}</h3>
-                        <p className="text-sm text-slate-600 mt-1">Client: {project.clientName}</p>
-                        {project.description && (
-                          <p className="text-sm text-slate-500 mt-1">{project.description}</p>
-                        )}
-                        <div className="flex items-center space-x-4 mt-3">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            project.status === 'active' 
-                              ? 'bg-green-100 text-green-800'
-                              : project.status === 'completed'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {project.status}
-                          </span>
-                          <span className="text-sm text-slate-500">Progress: {project.progress || 0}%</span>
+                {projects.map((project) => {
+                  const tokenStatus = getTokenStatus(project.tokenExpiry);
+                  
+                  return (
+                    <div key={project.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow" data-testid={`project-card-${project.id}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-slate-900" data-testid={`project-name-${project.id}`}>{project.name}</h3>
+                          <p className="text-sm text-slate-600 mt-1" data-testid={`project-client-${project.id}`}>Client: {project.clientName}</p>
+                          {project.description && (
+                            <p className="text-sm text-slate-500 mt-1">{project.description}</p>
+                          )}
+                          <div className="flex items-center space-x-4 mt-3">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              project.status === 'active' 
+                                ? 'bg-green-100 text-green-800'
+                                : project.status === 'completed'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`} data-testid={`project-status-${project.id}`}>
+                              {project.status}
+                            </span>
+                            <span className="text-sm text-slate-500">Progress: {project.progress || 0}%</span>
+                            
+                            {/* Token expiry status */}
+                            {tokenStatus.expired ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800" data-testid={`token-status-expired-${project.id}`}>
+                                <AlertTriangle className="mr-1 h-3 w-3" />
+                                Link Expired
+                              </span>
+                            ) : tokenStatus.expiringSoon ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" data-testid={`token-status-expiring-${project.id}`}>
+                                <AlertTriangle className="mr-1 h-3 w-3" />
+                                Expires in {tokenStatus.daysLeft} days
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-500" data-testid={`token-status-valid-${project.id}`}>
+                                Link valid for {tokenStatus.daysLeft} days
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {tokenStatus.expired ? (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => regenerateTokenMutation.mutate(project.id)}
+                              disabled={regenerateTokenMutation.isPending}
+                              data-testid={`button-regenerate-${project.id}`}
+                            >
+                              {regenerateTokenMutation.isPending ? (
+                                <>
+                                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                  Regenerating...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Regenerate Link
+                                </>
+                              )}
+                            </Button>
+                          ) : (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  const url = `${window.location.origin}/client/${project.shareToken}`;
+                                  try {
+                                    await navigator.clipboard.writeText(url);
+                                    toast({
+                                      title: "Link copied!",
+                                      description: "Client portal link copied to clipboard",
+                                    });
+                                  } catch (error) {
+                                    toast({
+                                      title: "Copy failed",
+                                      description: "Unable to copy to clipboard. Please copy manually: " + url,
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                                data-testid={`button-copy-link-${project.id}`}
+                              >
+                                Copy Link
+                              </Button>
+                              {tokenStatus.expiringSoon && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => regenerateTokenMutation.mutate(project.id)}
+                                  disabled={regenerateTokenMutation.isPending}
+                                  data-testid={`button-regenerate-${project.id}`}
+                                >
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Regenerate
+                                </Button>
+                              )}
+                            </>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setLocation(`/project/${project.id}/client-view`)}
+                            data-testid={`button-view-portal-${project.id}`}
+                          >
+                            View Portal
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const url = `${window.location.origin}/client/${project.shareToken}`;
-                            navigator.clipboard.writeText(url);
-                            toast({
-                              title: "Link copied!",
-                              description: "Client portal link copied to clipboard",
-                            });
-                          }}
-                        >
-                          Copy Link
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setLocation(`/project/${project.id}/client-view`)}
-                        >
-                          View Portal
-                        </Button>
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
