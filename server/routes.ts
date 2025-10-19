@@ -15,6 +15,7 @@ import {
   invoiceController,
   feedbackController,
 } from "./controllers";
+import * as healthController from "./controllers/health.controller";
 
 import { storageService } from "./services";
 
@@ -25,6 +26,9 @@ import {
   validateBody,
   validateParams,
   validateQuery,
+  cacheResponse,
+  CacheConfigs,
+  deduplicateRequests,
 } from "./middlewares";
 
 import { 
@@ -106,6 +110,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
   app.post("/api/auth/refresh-token", refreshToken);
   
+  // Health check and monitoring routes
+  app.get("/api/health", healthController.getHealthStatus);
+  app.get("/api/health/database", healthController.getDatabaseMetrics);
+  app.get("/api/health/cache", healthController.getCacheMetrics);
+  app.get("/api/health/system", healthController.getSystemMetrics);
+  
+  // Admin routes (should be protected in production)
+  app.post("/api/admin/cache/clear", healthController.clearCache);
+  app.post("/api/admin/database/optimize", healthController.optimizeDatabase);
+  
   // Note: Login protection is handled in googleAuth middleware
 
   // Freelancer routes (authenticated)
@@ -114,7 +128,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     validateBody(createProjectBodySchema), 
     projectController.createProject
   );
-  app.get("/api/projects", isAuthenticated, projectController.getProjects);
+  app.get("/api/projects", 
+    isAuthenticated, 
+    cacheResponse(CacheConfigs.projectList), 
+    deduplicateRequests((req) => `projects:${(req as any).user?.claims?.sub}`),
+    projectController.getProjects
+  );
   app.get("/api/projects/:projectId", 
     isAuthenticated, 
     validateParams(projectParamsSchema),
@@ -193,7 +212,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/:projectId/feedback/stats", isAuthenticated, withProjectAccess('freelancer'), feedbackController.getFeedbackStats);
 
   // Client portal routes (token-based access) with security
-  app.get("/api/client/:shareToken", withProjectAccess('client'), clientController.getClientPortalData);
+  app.get("/api/client/:shareToken", 
+    withProjectAccess('client'), 
+    cacheResponse(CacheConfigs.clientPortal),
+    deduplicateRequests((req) => `client:${req.params.shareToken}`),
+    clientController.getClientPortalData
+  );
   app.post("/api/client/:shareToken/messages", 
     rateLimiters.messaging,
     withProjectAccess('client'), 

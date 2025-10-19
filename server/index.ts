@@ -1,8 +1,22 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { 
+  compressionMiddleware, 
+  performanceMonitoring, 
+  staticAssetOptimization,
+  optimizeApiResponse 
+} from "./middlewares/performance.middleware";
+import { config } from "./config/app.config";
 
 const app = express();
+
+// Apply performance optimizations early in middleware chain
+app.use(compressionMiddleware);
+app.use(performanceMonitoring);
+app.use(staticAssetOptimization);
+app.use(optimizeApiResponse);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
