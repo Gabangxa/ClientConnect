@@ -16,6 +16,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { projectService } from '../services';
+import { AuthenticatedRequest } from '@shared/types';
 
 /**
  * Middleware to check if user is authenticated
@@ -28,7 +29,8 @@ import { projectService } from '../services';
  * @param {NextFunction} next - Next middleware function
  */
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
   next();

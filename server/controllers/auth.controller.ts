@@ -15,6 +15,7 @@
  */
 
 import { Request, Response } from 'express';
+import { AuthenticatedRequest, ApiResponse } from '@shared/types';
 
 /**
  * Get the currently authenticated user's information
@@ -28,17 +29,13 @@ import { Request, Response } from 'express';
  */
 export const getCurrentUser = (req: Request, res: Response) => {
   try {
-    // Track successful authentication
-    if (req.authAttemptTracking) {
-      req.authAttemptTracking.recordSuccess();
-    }
-
-    if (!req.user) {
+    const authReq = req as AuthenticatedRequest;
+    if (!authReq.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
     res.json({
-      user: req.user,
+      user: authReq.user,
       authenticated: true,
     });
   } catch (error) {
@@ -98,11 +95,12 @@ export const logout = (req: Request, res: Response) => {
  */
 export const checkAuthStatus = (req: Request, res: Response) => {
   try {
-    const isAuthenticated = !!req.user;
+    const authReq = req as AuthenticatedRequest;
+    const isAuthenticated = !!authReq.user;
     
     res.json({
       authenticated: isAuthenticated,
-      user: isAuthenticated ? req.user : null,
+      user: isAuthenticated ? authReq.user : null,
     });
   } catch (error) {
     console.error('Auth status check error:', error);
