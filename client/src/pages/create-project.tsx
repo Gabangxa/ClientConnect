@@ -25,9 +25,9 @@ export default function CreateProject() {
     resolver: zodResolver(insertProjectSchema),
     defaultValues: {
       name: "",
-      description: null,
+      description: "",
       clientName: "",
-      clientEmail: null,
+      clientEmail: "",
       freelancerId: "", // This will be set by the backend
       status: "active",
       progress: 0,
@@ -139,7 +139,8 @@ export default function CreateProject() {
                         <Textarea 
                           placeholder="Brief description of the project scope and deliverables..."
                           rows={3}
-                          {...field} 
+                          {...field}
+                          value={field.value || ""}
                         />
                       </FormControl>
                       <FormMessage />
@@ -175,7 +176,8 @@ export default function CreateProject() {
                           <Input 
                             type="email"
                             placeholder="sarah@company.com" 
-                            {...field} 
+                            {...field}
+                            value={field.value || ""}
                           />
                         </FormControl>
                         <FormMessage />

@@ -11,7 +11,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   const originalEnd = res.end;
   
   // Override end function to log completion
-  res.end = function(chunk?: any, encoding?: any) {
+  res.end = function(this: Response, chunk?: any, encoding?: any, cb?: any): any {
     const duration = Date.now() - start;
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     
@@ -26,9 +26,9 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
       console.log(logMessage);
     }
     
-    // Call original end function
-    originalEnd.call(this, chunk, encoding);
-  };
+    // Call original end function and return the result
+    return originalEnd.call(this, chunk, encoding, cb);
+  } as any;
   
   next();
 };
