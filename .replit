@@ -66,9 +66,5 @@ externalPort = 5173
 localPort = 44009
 externalPort = 3003
 
-[[ports]]
-localPort = 46779
-externalPort = 5000
-
 [agent]
 integrations = ["javascript_log_in_with_replit:1.0.0"]
