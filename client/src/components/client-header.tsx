@@ -54,7 +54,6 @@ export function ClientHeader({ project, unreadMessages, shareToken, onNavigateTo
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Bell icon clicked, navigating to messages');
                 onNavigateToMessages?.();
               }}
             >

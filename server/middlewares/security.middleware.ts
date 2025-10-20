@@ -55,13 +55,18 @@ const ALLOWED_MIME_TYPES = [
   'application/gzip'
 ];
 
-// Rate limiting stores
+// Rate limiting stores with cleanup tracking
 const rateLimitStores = {
   global: new Map<string, number[]>(),
   login: new Map<string, number[]>(),
   fileUpload: new Map<string, number[]>(),
   messaging: new Map<string, number[]>(),
 };
+
+// Track when IPs were last seen for cleanup
+const ipLastSeen = new Map<string, number>();
+const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+const IP_EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours
 
 interface RateLimitConfig {
   windowMs: number;
@@ -78,6 +83,37 @@ const rateLimits: Record<string, RateLimitConfig> = {
 };
 
 /**
+ * Cleanup expired IPs from all rate limiting stores
+ */
+const cleanupExpiredIPs = (): void => {
+  const now = Date.now();
+  const expiredIPs: string[] = [];
+
+  // Find IPs that haven't been seen recently
+  for (const [ip, lastSeen] of ipLastSeen.entries()) {
+    if (now - lastSeen > IP_EXPIRY_TIME) {
+      expiredIPs.push(ip);
+    }
+  }
+
+  // Remove expired IPs from all stores
+  for (const ip of expiredIPs) {
+    // Remove from rate limiting stores
+    Object.values(rateLimitStores).forEach(store => {
+      store.delete(ip);
+    });
+    
+    // Remove from tracking maps
+    ipLastSeen.delete(ip);
+    failedAttempts.delete(ip);
+  }
+
+  if (expiredIPs.length > 0) {
+    console.log(`[Security] Cleaned up ${expiredIPs.length} expired IPs from rate limiting stores`);
+  }
+};
+
+/**
  * Create rate limiter for specific endpoint type
  */
 export const createRateLimiter = (type: keyof typeof rateLimits) => {
@@ -87,15 +123,24 @@ export const createRateLimiter = (type: keyof typeof rateLimits) => {
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const now = Date.now();
 
+    // Track IP usage for cleanup
+    ipLastSeen.set(ip, now);
+
     if (!store.has(ip)) {
       store.set(ip, []);
     }
 
     const requests = store.get(ip)!;
 
-    // Remove expired requests
+    // Remove expired requests from this IP's record
     while (requests.length > 0 && requests[0] < now - config.windowMs) {
       requests.shift();
+    }
+
+    // If no recent requests, remove the IP entry to prevent memory leak
+    if (requests.length === 0 && now - (ipLastSeen.get(ip) || 0) > config.windowMs) {
+      store.delete(ip);
+      ipLastSeen.delete(ip);
     }
 
     // Check if limit exceeded
@@ -265,6 +310,38 @@ export const rateLimiters = {
   login: createRateLimiter('login'),
   fileUpload: createRateLimiter('fileUpload'),
   messaging: createRateLimiter('messaging'),
+};
+
+/**
+ * Initialize cleanup timer for rate limiting stores
+ */
+export const initializeSecurityCleanup = (): NodeJS.Timeout => {
+  // Run initial cleanup
+  cleanupExpiredIPs();
+  
+  // Set up recurring cleanup
+  const cleanupTimer = setInterval(cleanupExpiredIPs, CLEANUP_INTERVAL);
+  
+  console.log(`[Security] Initialized rate limiting cleanup (interval: ${CLEANUP_INTERVAL / 1000}s, expiry: ${IP_EXPIRY_TIME / 1000}s)`);
+  
+  return cleanupTimer;
+};
+
+/**
+ * Get current memory usage statistics for rate limiting stores
+ */
+export const getRateLimitingStats = () => {
+  return {
+    stores: {
+      global: rateLimitStores.global.size,
+      login: rateLimitStores.login.size,
+      fileUpload: rateLimitStores.fileUpload.size,
+      messaging: rateLimitStores.messaging.size,
+    },
+    totalIPs: ipLastSeen.size,
+    failedAttempts: failedAttempts.size,
+    lastCleanup: new Date().toISOString(),
+  };
 };
 
 // Extend Express types

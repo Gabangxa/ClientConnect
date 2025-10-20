@@ -1,22 +1,23 @@
 /**
  * Message Thread Component
  * 
- * Unified messaging interface supporting threaded conversations
- * between freelancers and clients. Provides modern chat-like experience
- * with reply functionality, read status, and message management.
+ * Enhanced unified messaging interface with real-time WebSocket support.
+ * Provides instant message delivery, typing indicators, read receipts,
+ * and connection status for seamless freelancer-client communication.
  * 
  * Features:
+ * - Real-time message delivery via WebSocket
+ * - Live typing indicators with user names
+ * - Instant read receipts and status updates
+ * - Connection status and user presence
  * - Threaded message display with proper nesting
  * - Reply functionality with context
- * - Message status indicators (sent, delivered, read)
  * - Priority and type-based styling
- * - Inline message composer for replies
- * - Real-time read status updates
  * 
  * @module MessageThread
  */
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { format } from "date-fns";
 import { Reply, MoreVertical, Clock, Check, CheckCheck, Paperclip, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,9 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { MessageComposer } from "./message-composer";
+import { TypingIndicator } from "./typing-indicator";
+import { ConnectionStatus } from "./connection-status";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 interface MessageAttachment {
   id: string;
@@ -58,6 +62,8 @@ interface MessageThreadProps {
   messages: Message[];
   currentUserType: 'freelancer' | 'client';
   currentUserName?: string;
+  currentUserId?: string;
+  projectId?: string;
   onSendMessage: (data: {
     content: string;
     parentMessageId?: string;
@@ -69,6 +75,7 @@ interface MessageThreadProps {
   onMarkAsRead?: (messageId: string) => void;
   isLoading?: boolean;
   shareToken?: string; // For client portal access
+  enableRealTime?: boolean; // Enable WebSocket features
 }
 
 export function MessageThread({ 

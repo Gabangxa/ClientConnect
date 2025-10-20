@@ -1,8 +1,32 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initializeWebSocket } from "./services/websocket.service";
+import { initializeSecurityCleanup } from "./middlewares/security.middleware";
+// Performance middleware imports (to be added later)
+// import { 
+//   compressionMiddleware, 
+//   performanceMonitoring, 
+//   staticAssetOptimization,
+//   optimizeApiResponse 
+// } from "./middlewares/performance.middleware";
 
 const app = express();
+const httpServer = createServer(app);
+
+// Initialize WebSocket service
+const webSocketService = initializeWebSocket(httpServer);
+
+// Initialize security cleanup timer for rate limiting
+const securityCleanupTimer = initializeSecurityCleanup();
+
+// Apply performance optimizations early in middleware chain (to be added later)
+// app.use(compressionMiddleware);
+// app.use(performanceMonitoring);
+// app.use(staticAssetOptimization);
+// app.use(optimizeApiResponse);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -60,11 +84,9 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  
+  // Use httpServer instead of server for WebSocket support
+  httpServer.listen(port, "0.0.0.0", () => {
+    log(`Server with WebSocket support serving on port ${port}`);
   });
 })();

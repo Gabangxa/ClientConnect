@@ -12,7 +12,7 @@ import CreateProject from "@/pages/create-project";
 import FreelancerClientView from "@/pages/freelancer-client-view";
 import Header from "@/components/Header";
 import PageTransition from "@/components/PageTransition";
-import ClientView from "@/pages/ClientView";
+import ErrorBoundary from "@/components/error-boundary";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -26,9 +26,8 @@ function Router() {
       <main className={isAuthenticated ? "px-4 py-6 max-w-7xl mx-auto" : ""}>
         <PageTransition>
           <Switch>
-            {/* Client portal routes - accessible without auth */}
+            {/* Client portal route - accessible without auth */}
             <Route path="/client/:shareToken" component={ClientPortal} />
-            <Route path="/client/:token" component={ClientView} />
             
             {isLoading || !isAuthenticated ? (
               <>
@@ -56,12 +55,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
