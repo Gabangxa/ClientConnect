@@ -40,8 +40,8 @@ export function getSession() {
     rolling: true, // Reset expiry on activity
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Only secure in production
-      sameSite: 'strict', // CSRF protection
+      secure: true, // Always secure for production readiness
+      sameSite: 'lax', // Consistent with Google Auth
       maxAge: sessionTtl,
     },
   });

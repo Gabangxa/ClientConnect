@@ -64,8 +64,6 @@ export default function CreateProject() {
   });
 
   const onSubmit = (data: ProjectFormData) => {
-    console.log("Form submitted with data:", data);
-    
     // Ensure required fields are not empty
     if (!data.name || !data.clientName) {
       toast({
@@ -209,7 +207,6 @@ export default function CreateProject() {
                     type="submit"
                     disabled={createProjectMutation.isPending}
                     className="flex-1"
-                    onClick={() => console.log("Create Project button clicked")}
                   >
                     {createProjectMutation.isPending ? (
                       <>
