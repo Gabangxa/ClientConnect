@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeWebSocket } from "./services/websocket.service";
+import { initializeSecurityCleanup } from "./middlewares/security.middleware";
 // Performance middleware imports (to be added later)
 // import { 
 //   compressionMiddleware, 
@@ -16,6 +17,9 @@ const httpServer = createServer(app);
 
 // Initialize WebSocket service
 const webSocketService = initializeWebSocket(httpServer);
+
+// Initialize security cleanup timer for rate limiting
+const securityCleanupTimer = initializeSecurityCleanup();
 
 // Apply performance optimizations early in middleware chain (to be added later)
 // app.use(compressionMiddleware);

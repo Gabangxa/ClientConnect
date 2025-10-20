@@ -146,7 +146,6 @@ export function useWebSocket({
 
     // Connection event handlers
     socket.on('connect', () => {
-      console.log('WebSocket connected:', socket.id);
       setConnectionStatus(prev => ({
         ...prev,
         isConnected: true,
@@ -166,7 +165,6 @@ export function useWebSocket({
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('WebSocket disconnected:', reason);
       setConnectionStatus(prev => ({
         ...prev,
         isConnected: false,
@@ -174,7 +172,6 @@ export function useWebSocket({
     });
 
     socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log('WebSocket reconnect attempt:', attemptNumber);
       setConnectionStatus(prev => ({
         ...prev,
         isReconnecting: true,
@@ -183,7 +180,6 @@ export function useWebSocket({
     });
 
     socket.on('reconnect', () => {
-      console.log('WebSocket reconnected');
       setConnectionStatus(prev => ({
         ...prev,
         isConnected: true,
@@ -194,21 +190,18 @@ export function useWebSocket({
 
     // Message event handlers
     socket.on('new_message', (message: Message) => {
-      console.log('Received new message:', message);
       if (messageCallbackRef.current) {
         messageCallbackRef.current(message);
       }
     });
 
     socket.on('message_read', (data: any) => {
-      console.log('Message read:', data);
       if (messageReadCallbackRef.current) {
         messageReadCallbackRef.current(data);
       }
     });
 
     socket.on('bulk_messages_read', (data: any) => {
-      console.log('Bulk messages read:', data);
       if (messageReadCallbackRef.current) {
         messageReadCallbackRef.current({ ...data, isBulk: true });
       }
@@ -235,14 +228,12 @@ export function useWebSocket({
     });
 
     socket.on('user_joined', (user: any) => {
-      console.log('User joined:', user);
       if (userJoinedCallbackRef.current) {
         userJoinedCallbackRef.current(user);
       }
     });
 
     socket.on('user_left', (user: any) => {
-      console.log('User left:', user);
       if (userLeftCallbackRef.current) {
         userLeftCallbackRef.current(user);
       }
@@ -250,7 +241,7 @@ export function useWebSocket({
 
     // Error handling
     socket.on('error', (error: any) => {
-      console.error('WebSocket error:', error);
+      // Silent error handling - errors will be logged by server-side middleware
     });
 
     // Keep connection alive with ping/pong

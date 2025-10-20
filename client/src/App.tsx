@@ -12,6 +12,7 @@ import CreateProject from "@/pages/create-project";
 import FreelancerClientView from "@/pages/freelancer-client-view";
 import Header from "@/components/Header";
 import PageTransition from "@/components/PageTransition";
+import ErrorBoundary from "@/components/error-boundary";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -54,12 +55,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
