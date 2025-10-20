@@ -35,7 +35,7 @@ export class ProjectController {
    */
   async createProject(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = (req.user as any).claims?.sub;
+      const userId = (req.user as any).id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -55,7 +55,7 @@ export class ProjectController {
 
   async getProjects(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = (req.user as any).claims?.sub;
+      const userId = (req.user as any).id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -111,7 +111,7 @@ export class ProjectController {
   async regenerateShareToken(req: Request, res: Response, next: NextFunction) {
     try {
       const { projectId } = req.params; // Already validated by middleware
-      const userId = (req.user as any).claims?.sub;
+      const userId = (req.user as any).id;
 
       const project = await projectService.regenerateShareToken(projectId, userId);
       res.json(project);

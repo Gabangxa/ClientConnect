@@ -28,7 +28,7 @@ export class DeliverableController {
     try {
       const { projectId } = req.params;
       const file = (req as any).file;
-      const userId = (req.user as any).claims.sub;
+      const userId = (req.user as any).id;
       const user = await userService.getUser(userId);
       
       if (!file) {
@@ -124,7 +124,7 @@ export class DeliverableController {
   async deleteDeliverable(req: Request, res: Response) {
     try {
       const { deliverableId } = req.params;
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = (req.user as any)?.id;
       
       const canDelete = await deliverableService.canDeleteDeliverable(deliverableId, userId);
       

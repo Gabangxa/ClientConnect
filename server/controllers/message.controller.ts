@@ -38,7 +38,7 @@ export class MessageController {
   async sendMessage(req: Request, res: Response) {
     try {
       const { projectId } = req.params;
-      const userId = (req.user as any).claims?.sub;
+      const userId = (req.user as any).id;
       const user = (req.user as any);
       const attachmentFiles = (req as any).files || []; // Files from multer
       
@@ -75,7 +75,7 @@ export class MessageController {
 
   async getRecentMessages(req: Request, res: Response) {
     try {
-      const userId = (req.user as any).claims?.sub;
+      const userId = (req.user as any).id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -191,7 +191,7 @@ export class MessageController {
       }
 
       // Authorization check: verify user has access to this message's project
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = (req.user as any)?.id;
       const project = (req as any).project; // Set by middleware if client portal access
       
       if (!userId && !project) {

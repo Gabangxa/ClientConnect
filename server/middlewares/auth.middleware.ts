@@ -50,7 +50,7 @@ export const withProjectAccess = (role: 'freelancer' | 'client') => {
       if (role === 'freelancer') {
         // For freelancer routes, check project ownership
         const { projectId } = req.params;
-        const userId = (req.user as any)?.claims?.sub;
+        const userId = (req.user as any)?.id;
         
         if (!userId) {
           return res.status(401).json({ message: "Unauthorized" });
