@@ -48,6 +48,10 @@ The application features distinct interfaces for freelancers and clients. The cl
 - **Security Implementation**: Comprehensive file upload validation (extension/MIME type, secure filename generation), JWT-based tokens for client access, endpoint-specific rate limiting, brute force protection, secure HTTP headers, and upgraded session security.
 
 ### Recent Changes
+**Project Templates & Analytics Dashboard (December 2025)**: Added two major feature additions:
+1. **Project Templates System**: Full CRUD for reusable project templates with nested deliverables. Templates can be created, edited, and deleted from a dedicated `/templates` page. When creating a new project, users can select a template to auto-populate project details and automatically create associated deliverables. Template system includes `project_templates` and `template_deliverables` database tables with proper relations, ownership verification, and `dueDaysOffset` for flexible scheduling.
+2. **Analytics Dashboard**: New `/analytics` page with comprehensive business metrics. Features 8 KPI cards (total projects, revenue, deliverables, messages, ratings), revenue bar charts, project status pie charts, and message activity line charts. Uses Recharts library for visualizations. Backend includes analytics service with aggregation queries for overview stats, project stats, revenue stats, and activity stats.
+
 **Project Search, Filtering, Archiving & Onboarding (December 2025)**: Added three major improvements to the freelancer dashboard:
 1. **Project Search & Filtering**: Search projects by name, client name, or description with real-time filtering. Status filter dropdown allows filtering by active, completed, or paused projects.
 2. **Project Archiving & Deletion**: Projects can now be archived (hidden from main view but restorable) or permanently deleted with all associated data (deliverables, messages, invoices, feedback, access logs, and files). Confirmation dialogs protect against accidental actions.
@@ -73,6 +77,7 @@ The application adopts a monorepo structure, separating client, server, and shar
 - **React Hook Form**: Form handling and validation.
 - **Zod**: Schema validation.
 - **date-fns**: Date manipulation utilities.
+- **Recharts**: Charting library for analytics visualizations.
 
 ### Backend Services
 - **Express Session**: Session management.

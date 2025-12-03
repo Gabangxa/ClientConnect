@@ -100,6 +100,7 @@ function KPICard({
   icon: Icon, 
   trend,
   isLoading,
+  testId,
 }: { 
   title: string; 
   value: string | number; 
@@ -107,10 +108,11 @@ function KPICard({
   icon: typeof Briefcase; 
   trend?: { value: number; label: string };
   isLoading?: boolean;
+  testId?: string;
 }) {
   if (isLoading) {
     return (
-      <Card>
+      <Card data-testid={testId ? `${testId}-loading` : undefined}>
         <CardContent className="p-6">
           <Skeleton className="h-4 w-24 mb-2" />
           <Skeleton className="h-8 w-16 mb-1" />
@@ -121,12 +123,12 @@ function KPICard({
   }
 
   return (
-    <Card>
+    <Card data-testid={testId}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold mt-1">{value}</p>
+            <p className="text-2xl font-bold mt-1" data-testid={testId ? `${testId}-value` : undefined}>{value}</p>
             {subtitle && (
               <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
             )}
@@ -214,6 +216,7 @@ export default function Analytics() {
             subtitle={`${overview?.activeProjects || 0} active, ${overview?.completedProjects || 0} completed`}
             icon={Briefcase}
             isLoading={overviewLoading}
+            testId="card-total-projects"
           />
           <KPICard
             title="Total Revenue"
@@ -221,6 +224,7 @@ export default function Analytics() {
             subtitle={`${formatCurrency(overview?.pendingRevenue || 0)} pending`}
             icon={DollarSign}
             isLoading={overviewLoading}
+            testId="card-total-revenue"
           />
           <KPICard
             title="Deliverables"
@@ -228,6 +232,7 @@ export default function Analytics() {
             subtitle={`${overview?.approvedDeliverables || 0} approved, ${overview?.pendingDeliverables || 0} pending`}
             icon={FileCheck}
             isLoading={overviewLoading}
+            testId="card-deliverables"
           />
           <KPICard
             title="Average Rating"
@@ -235,6 +240,7 @@ export default function Analytics() {
             subtitle={`From ${overview?.totalFeedback || 0} reviews`}
             icon={Star}
             isLoading={overviewLoading}
+            testId="card-average-rating"
           />
         </div>
 
@@ -245,29 +251,33 @@ export default function Analytics() {
             subtitle={`${overview?.unreadMessages || 0} unread`}
             icon={MessageSquare}
             isLoading={overviewLoading}
+            testId="card-total-messages"
           />
           <KPICard
             title="Active Projects"
             value={overview?.activeProjects || 0}
             icon={Clock}
             isLoading={overviewLoading}
+            testId="card-active-projects"
           />
           <KPICard
             title="Completed Projects"
             value={overview?.completedProjects || 0}
             icon={CheckCircle2}
             isLoading={overviewLoading}
+            testId="card-completed-projects"
           />
           <KPICard
             title="Pending Revenue"
             value={formatCurrency(overview?.pendingRevenue || 0)}
             icon={TrendingUp}
             isLoading={overviewLoading}
+            testId="card-pending-revenue"
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
+          <Card data-testid="card-revenue-chart">
             <CardHeader>
               <CardTitle>Revenue Overview</CardTitle>
               <CardDescription>Monthly revenue breakdown (last 6 months)</CardDescription>
@@ -300,7 +310,7 @@ export default function Analytics() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-testid="card-projects-status-chart">
             <CardHeader>
               <CardTitle>Projects by Status</CardTitle>
               <CardDescription>Distribution of your projects</CardDescription>
@@ -341,7 +351,7 @@ export default function Analytics() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
+          <Card data-testid="card-message-activity">
             <CardHeader>
               <CardTitle>Message Activity</CardTitle>
               <CardDescription>Messages per day (last 14 days)</CardDescription>
@@ -376,7 +386,7 @@ export default function Analytics() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-testid="card-recent-projects">
             <CardHeader>
               <CardTitle>Recent Projects</CardTitle>
               <CardDescription>Your latest projects</CardDescription>
@@ -422,7 +432,7 @@ export default function Analytics() {
           </Card>
         </div>
 
-        <Card>
+        <Card data-testid="card-summary">
           <CardHeader>
             <CardTitle>Summary</CardTitle>
             <CardDescription>Quick overview of your business metrics</CardDescription>
