@@ -7,3 +7,4 @@ export { invoiceService } from './invoice.service';
 export { feedbackService } from './feedback.service';
 export { storageService } from './storage.service';
 export { templateService } from './template.service';
+export { analyticsService } from './analytics.service';

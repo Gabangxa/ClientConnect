@@ -7,6 +7,7 @@ import { MessageController } from './message.controller';
 import { InvoiceController } from './invoice.controller';
 import { FeedbackController } from './feedback.controller';
 import { templateController } from './template.controller';
+import { analyticsController } from './analytics.controller';
 
 // Re-export classes
 export { ProjectController, ClientController, DeliverableController, MessageController, InvoiceController, FeedbackController };
@@ -26,3 +27,4 @@ export const messageController = new MessageController();
 export const invoiceController = new InvoiceController();
 export const feedbackController = new FeedbackController();
 export { templateController };
+export { analyticsController };

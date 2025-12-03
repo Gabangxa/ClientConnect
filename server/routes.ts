@@ -15,6 +15,7 @@ import {
   invoiceController,
   feedbackController,
   templateController,
+  analyticsController,
 } from "./controllers";
 
 import { storageService } from "./services";
@@ -148,6 +149,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/templates/:templateId", isAuthenticated, templateController.updateTemplate);
   app.delete("/api/templates/:templateId", isAuthenticated, templateController.deleteTemplate);
   app.post("/api/templates/:templateId/apply", isAuthenticated, templateController.applyTemplate);
+
+  // Analytics routes (authenticated)
+  app.get("/api/analytics/overview", isAuthenticated, analyticsController.getOverview);
+  app.get("/api/analytics/projects", isAuthenticated, analyticsController.getProjectStats);
+  app.get("/api/analytics/revenue", isAuthenticated, analyticsController.getRevenueStats);
+  app.get("/api/analytics/activity", isAuthenticated, analyticsController.getActivityStats);
 
   // Deliverable routes (freelancer) with file upload security
   app.post("/api/projects/:projectId/deliverables", 
