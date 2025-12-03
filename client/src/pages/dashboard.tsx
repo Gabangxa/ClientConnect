@@ -608,6 +608,15 @@ export default function Dashboard() {
                 <Plus className="mr-2 h-4 w-4" />
                 New Project
               </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setLocation("/templates")} 
+                className="w-full justify-start"
+                data-testid="button-quick-templates"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Project Templates
+              </Button>
               {projects.filter(p => p.status !== 'archived').length > 0 && (
                 <>
                   <Button 
