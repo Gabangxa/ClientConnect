@@ -11,6 +11,7 @@ import ClientPortal from "@/pages/client-portal";
 import CreateProject from "@/pages/create-project";
 import FreelancerClientView from "@/pages/freelancer-client-view";
 import Templates from "@/pages/templates";
+import Analytics from "@/pages/analytics";
 import Header from "@/components/Header";
 import PageTransition from "@/components/PageTransition";
 import ErrorBoundary from "@/components/error-boundary";
@@ -42,6 +43,7 @@ function Router() {
                 <Route path="/" component={Dashboard} />
                 <Route path="/dashboard" component={Dashboard} />
                 <Route path="/templates" component={Templates} />
+                <Route path="/analytics" component={Analytics} />
                 <Route path="/create-project" component={CreateProject} />
                 <Route path="/project/:projectId" component={FreelancerClientView} />
                 <Route path="/project/:projectId/client-view" component={FreelancerClientView} />

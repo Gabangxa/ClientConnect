@@ -31,7 +31,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { 
   Plus, Briefcase, Users, FileText, MessageSquare, RefreshCw, AlertTriangle, 
   Search, Filter, Archive, Trash2, MoreVertical, ArchiveRestore, X,
-  Sparkles, ArrowRight, CheckCircle2, Link2, Upload, Send
+  Sparkles, ArrowRight, CheckCircle2, Link2, Upload, Send, BarChart2
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -616,6 +616,15 @@ export default function Dashboard() {
               >
                 <FileText className="mr-2 h-4 w-4" />
                 Project Templates
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setLocation("/analytics")} 
+                className="w-full justify-start"
+                data-testid="button-quick-analytics"
+              >
+                <BarChart2 className="mr-2 h-4 w-4" />
+                Analytics Dashboard
               </Button>
               {projects.filter(p => p.status !== 'archived').length > 0 && (
                 <>
