@@ -202,9 +202,55 @@ export const messageAttachments = pgTable("message_attachments", {
   index("idx_message_attachments_message_uploaded").on(table.messageId, table.uploadedAt),
 ]);
 
+// Project Templates - reusable project blueprints
+export const projectTemplates = pgTable("project_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  freelancerId: varchar("freelancer_id").notNull().references(() => users.id),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  defaultStatus: varchar("default_status").notNull().default("active"),
+  category: varchar("category"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_project_templates_freelancer_id").on(table.freelancerId),
+  index("idx_project_templates_category").on(table.category),
+  index("idx_project_templates_created_at").on(table.createdAt),
+]);
+
+// Template Deliverables - predefined deliverables for templates
+export const templateDeliverables = pgTable("template_deliverables", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull().references(() => projectTemplates.id, { onDelete: 'cascade' }),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull().default("deliverable"),
+  sortOrder: integer("sort_order").default(0),
+  dueDaysOffset: integer("due_days_offset"),
+}, (table) => [
+  index("idx_template_deliverables_template_id").on(table.templateId),
+  index("idx_template_deliverables_sort_order").on(table.sortOrder),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   projects: many(projects),
+  projectTemplates: many(projectTemplates),
+}));
+
+export const projectTemplatesRelations = relations(projectTemplates, ({ one, many }) => ({
+  freelancer: one(users, {
+    fields: [projectTemplates.freelancerId],
+    references: [users.id],
+  }),
+  deliverables: many(templateDeliverables),
+}));
+
+export const templateDeliverablesRelations = relations(templateDeliverables, ({ one }) => ({
+  template: one(projectTemplates, {
+    fields: [templateDeliverables.templateId],
+    references: [projectTemplates.id],
+  }),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -323,6 +369,16 @@ export const insertMessageAttachmentSchema = createInsertSchema(messageAttachmen
   uploadedAt: true,
 });
 
+export const insertProjectTemplateSchema = createInsertSchema(projectTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTemplateDeliverableSchema = createInsertSchema(templateDeliverables).omit({
+  id: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -340,3 +396,7 @@ export type InsertAccessLog = z.infer<typeof insertAccessLogSchema>;
 export type AccessLog = typeof accessLogs.$inferSelect;
 export type InsertMessageAttachment = z.infer<typeof insertMessageAttachmentSchema>;
 export type MessageAttachment = typeof messageAttachments.$inferSelect;
+export type InsertProjectTemplate = z.infer<typeof insertProjectTemplateSchema>;
+export type ProjectTemplate = typeof projectTemplates.$inferSelect;
+export type InsertTemplateDeliverable = z.infer<typeof insertTemplateDeliverableSchema>;
+export type TemplateDeliverable = typeof templateDeliverables.$inferSelect;

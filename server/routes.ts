@@ -14,6 +14,7 @@ import {
   messageController,
   invoiceController,
   feedbackController,
+  templateController,
 } from "./controllers";
 
 import { storageService } from "./services";
@@ -139,6 +140,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     validateParams(projectParamsSchema),
     projectController.deleteProject
   );
+
+  // Template routes (authenticated)
+  app.get("/api/templates", isAuthenticated, templateController.getTemplates);
+  app.get("/api/templates/:templateId", isAuthenticated, templateController.getTemplate);
+  app.post("/api/templates", isAuthenticated, templateController.createTemplate);
+  app.put("/api/templates/:templateId", isAuthenticated, templateController.updateTemplate);
+  app.delete("/api/templates/:templateId", isAuthenticated, templateController.deleteTemplate);
+  app.post("/api/templates/:templateId/apply", isAuthenticated, templateController.applyTemplate);
 
   // Deliverable routes (freelancer) with file upload security
   app.post("/api/projects/:projectId/deliverables", 
