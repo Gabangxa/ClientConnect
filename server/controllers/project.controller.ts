@@ -119,6 +119,28 @@ export class ProjectController {
       next(error);
     }
   }
+
+  async deleteProject(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { projectId } = req.params;
+      const userId = (req.user as any).id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      await projectService.deleteProject(projectId, userId);
+      res.json({ message: "Project deleted successfully" });
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ message: error.message });
+      }
+      if (error.message?.includes("Unauthorized")) {
+        return res.status(403).json({ message: error.message });
+      }
+      next(error);
+    }
+  }
 }
 
 export const projectController = new ProjectController();

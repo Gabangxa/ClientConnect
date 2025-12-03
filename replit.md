@@ -48,6 +48,11 @@ The application features distinct interfaces for freelancers and clients. The cl
 - **Security Implementation**: Comprehensive file upload validation (extension/MIME type, secure filename generation), JWT-based tokens for client access, endpoint-specific rate limiting, brute force protection, secure HTTP headers, and upgraded session security.
 
 ### Recent Changes
+**Project Search, Filtering, Archiving & Onboarding (December 2025)**: Added three major improvements to the freelancer dashboard:
+1. **Project Search & Filtering**: Search projects by name, client name, or description with real-time filtering. Status filter dropdown allows filtering by active, completed, or paused projects.
+2. **Project Archiving & Deletion**: Projects can now be archived (hidden from main view but restorable) or permanently deleted with all associated data (deliverables, messages, invoices, feedback, access logs, and files). Confirmation dialogs protect against accidental actions.
+3. **Onboarding Wizard**: New users with no projects see a welcome wizard that guides them through the platform features: creating projects, sharing portal links, uploading deliverables, and communicating with clients. Progress is tracked with localStorage to only show once.
+
 **Desktop Notifications for Messaging (October 2025)**: Added desktop notification support for incoming messages. Created `useMessageNotifications` custom hook that requests browser notification permission, tracks message history, and displays notifications when new messages arrive from the other party. Integrated into both freelancer client view and client portal with proper React hooks ordering to prevent rendering issues. Notifications show sender name and message preview, auto-close after 5 seconds, and focus the window when clicked.
 
 **File Attachment System for Messaging (August 2025)**: Implemented comprehensive file attachment functionality for the messaging system. Added `message_attachments` table with proper indexing and relations, created `MessageAttachmentService` for file operations, extended message API endpoints with secure file upload/download, and updated `MessageComposer` and `MessageThread` components with drag-and-drop support, attachment display, and download functionality. System supports up to 5 attachments per message with 10MB size limit per file and proper security validation.

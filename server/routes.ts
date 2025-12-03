@@ -134,6 +134,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     withProjectAccess('freelancer'), 
     projectController.regenerateShareToken
   );
+  app.delete("/api/projects/:projectId", 
+    isAuthenticated, 
+    validateParams(projectParamsSchema),
+    projectController.deleteProject
+  );
 
   // Deliverable routes (freelancer) with file upload security
   app.post("/api/projects/:projectId/deliverables", 

@@ -18,14 +18,20 @@
 import {
   projects,
   accessLogs,
+  messages,
+  deliverables,
+  invoices,
+  feedback,
+  messageAttachments,
   type Project,
   type InsertProject,
   type AccessLog,
   type InsertAccessLog,
 } from "@shared/schema";
 import { db } from "../db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { storageService } from "./storage.service";
 
 /**
  * Service class for project-related business logic
@@ -138,6 +144,73 @@ export class ProjectService {
         accessCount: sql`COALESCE(access_count, 0) + 1`,
       })
       .where(eq(projects.id, projectId));
+  }
+
+  async deleteProject(projectId: string, freelancerId: string): Promise<void> {
+    const project = await this.getProjectById(projectId);
+    
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    if (project.freelancerId !== freelancerId) {
+      throw new Error("Unauthorized: You can only delete your own projects");
+    }
+
+    // Get all deliverable file paths to delete from storage
+    const projectDeliverables = await db
+      .select({ filePath: deliverables.filePath })
+      .from(deliverables)
+      .where(eq(deliverables.projectId, projectId));
+
+    // Get all message IDs to find their attachments
+    const projectMessages = await db
+      .select({ id: messages.id })
+      .from(messages)
+      .where(eq(messages.projectId, projectId));
+
+    const messageIds = projectMessages.map(m => m.id);
+
+    // Get all message attachment file paths
+    let attachmentFilePaths: string[] = [];
+    if (messageIds.length > 0) {
+      const attachments = await db
+        .select({ filePath: messageAttachments.filePath })
+        .from(messageAttachments)
+        .where(inArray(messageAttachments.messageId, messageIds));
+      attachmentFilePaths = attachments.map(a => a.filePath).filter(Boolean);
+    }
+
+    // Delete files from storage
+    const allFilePaths = [
+      ...projectDeliverables.map(d => d.filePath).filter(Boolean),
+      ...attachmentFilePaths,
+    ] as string[];
+
+    for (const filePath of allFilePaths) {
+      try {
+        await storageService.deleteFile(filePath);
+      } catch (error) {
+        console.error(`Failed to delete file ${filePath}:`, error);
+      }
+    }
+
+    // Delete message attachments first (foreign key constraint)
+    if (messageIds.length > 0) {
+      await db
+        .delete(messageAttachments)
+        .where(inArray(messageAttachments.messageId, messageIds));
+    }
+
+    // Delete all related data in order (respecting foreign key constraints)
+    await db.delete(messages).where(eq(messages.projectId, projectId));
+    await db.delete(deliverables).where(eq(deliverables.projectId, projectId));
+    await db.delete(invoices).where(eq(invoices.projectId, projectId));
+    await db.delete(feedback).where(eq(feedback.projectId, projectId));
+    await db.delete(accessLogs).where(eq(accessLogs.projectId, projectId));
+
+    // Finally delete the project
+    await db.delete(projects).where(eq(projects.id, projectId));
   }
 }
 

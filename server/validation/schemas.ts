@@ -40,7 +40,7 @@ export const createProjectBodySchema = z.object({
   description: z.string().optional(),
   clientName: z.string().min(1).max(255),
   clientEmail: z.string().email().optional(),
-  status: z.enum(['active', 'completed', 'paused']).default('active'),
+  status: z.enum(['active', 'completed', 'paused', 'archived']).default('active'),
   progress: z.number().min(0).max(100).default(0),
 });
 

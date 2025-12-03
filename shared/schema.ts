@@ -53,7 +53,7 @@ export const projects = pgTable("projects", {
   tokenExpiry: timestamp("token_expiry").notNull().default(sql`NOW() + INTERVAL '90 days'`), // When share token expires
   accessCount: integer("access_count").default(0), // How many times client accessed
   lastAccessed: timestamp("last_accessed"), // Last client access time
-  status: varchar("status").notNull().default("active"), // active, completed, paused
+  status: varchar("status").notNull().default("active"), // active, completed, paused, archived
   progress: integer("progress").default(0), // 0-100
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
