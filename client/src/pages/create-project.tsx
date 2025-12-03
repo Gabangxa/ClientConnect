@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { insertProjectSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -11,8 +11,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Briefcase } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Briefcase, FileText, Check, Loader2 } from "lucide-react";
+import { Link } from "wouter";
 import type { z } from "zod";
+
+interface TemplateDeliverable {
+  id?: string;
+  title: string;
+  description?: string;
+  type: string;
+  sortOrder: number;
+}
+
+interface ProjectTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  defaultStatus: string;
+  category?: string;
+  deliverables: TemplateDeliverable[];
+}
 
 type ProjectFormData = z.infer<typeof insertProjectSchema>;
 
@@ -20,6 +39,13 @@ export default function CreateProject() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
+  const { data: templates = [] } = useQuery<ProjectTemplate[]>({
+    queryKey: ["/api/templates"],
+  });
+
+  const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(insertProjectSchema),
@@ -28,11 +54,31 @@ export default function CreateProject() {
       description: "",
       clientName: "",
       clientEmail: "",
-      freelancerId: "", // This will be set by the backend
+      freelancerId: "",
       status: "active",
       progress: 0,
     },
   });
+
+  const handleTemplateSelect = (templateId: string) => {
+    if (templateId === "none") {
+      setSelectedTemplateId(null);
+      form.setValue("name", "");
+      form.setValue("description", "");
+      return;
+    }
+    
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setSelectedTemplateId(templateId);
+      if (!form.getValues("name")) {
+        form.setValue("name", template.name);
+      }
+      if (!form.getValues("description") && template.description) {
+        form.setValue("description", template.description);
+      }
+    }
+  };
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: ProjectFormData) => {
@@ -45,7 +91,6 @@ export default function CreateProject() {
         title: "Project created!",
         description: "Your client project has been created successfully.",
       });
-      // Copy share link to clipboard
       const shareUrl = `${window.location.origin}/client/${project.shareToken}`;
       navigator.clipboard.writeText(shareUrl);
       toast({
@@ -54,7 +99,7 @@ export default function CreateProject() {
       });
       setLocation("/");
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to create project. Please try again.",
@@ -63,8 +108,44 @@ export default function CreateProject() {
     },
   });
 
+  const applyTemplateMutation = useMutation({
+    mutationFn: async ({ templateId, clientName, clientEmail, projectName }: { 
+      templateId: string; 
+      clientName: string; 
+      clientEmail?: string;
+      projectName?: string;
+    }) => {
+      const response = await apiRequest("POST", `/api/templates/${templateId}/apply`, {
+        clientName,
+        clientEmail,
+        projectName,
+      });
+      return response.json();
+    },
+    onSuccess: (project) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({
+        title: "Project created from template!",
+        description: `${selectedTemplate?.deliverables.length || 0} deliverables were added automatically.`,
+      });
+      const shareUrl = `${window.location.origin}/client/${project.shareToken}`;
+      navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Share link copied!",
+        description: "The client portal link has been copied to your clipboard.",
+      });
+      setLocation("/");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create project from template. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: ProjectFormData) => {
-    // Ensure required fields are not empty
     if (!data.name || !data.clientName) {
       toast({
         title: "Validation Error",
@@ -74,8 +155,19 @@ export default function CreateProject() {
       return;
     }
     
-    createProjectMutation.mutate(data);
+    if (selectedTemplateId) {
+      applyTemplateMutation.mutate({
+        templateId: selectedTemplateId,
+        clientName: data.clientName,
+        clientEmail: data.clientEmail || undefined,
+        projectName: data.name,
+      });
+    } else {
+      createProjectMutation.mutate(data);
+    }
   };
+
+  const isPending = createProjectMutation.isPending || applyTemplateMutation.isPending;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -110,6 +202,65 @@ export default function CreateProject() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {templates.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Start from Template</label>
+                    <Select
+                      value={selectedTemplateId || "none"}
+                      onValueChange={handleTemplateSelect}
+                    >
+                      <SelectTrigger data-testid="select-template">
+                        <SelectValue placeholder="Select a template (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No template - Start fresh</SelectItem>
+                        {templates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              {template.name}
+                              {template.deliverables.length > 0 && (
+                                <span className="text-xs text-muted-foreground">
+                                  ({template.deliverables.length} deliverables)
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Templates pre-populate project details and deliverables
+                    </p>
+                  </div>
+                )}
+
+                {selectedTemplate && selectedTemplate.deliverables.length > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Check className="h-4 w-4 text-green-600" />
+                      <h4 className="font-medium text-green-900">
+                        Template: {selectedTemplate.name}
+                      </h4>
+                    </div>
+                    <p className="text-sm text-green-800 mb-2">
+                      The following deliverables will be added automatically:
+                    </p>
+                    <ul className="text-sm text-green-700 space-y-1">
+                      {selectedTemplate.deliverables
+                        .sort((a, b) => a.sortOrder - b.sortOrder)
+                        .map((d, i) => (
+                          <li key={d.id || i} className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-green-200 text-green-800 text-xs flex items-center justify-center">
+                              {i + 1}
+                            </span>
+                            {d.title}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+
                 <FormField
                   control={form.control}
                   name="name"
@@ -205,14 +356,16 @@ export default function CreateProject() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={createProjectMutation.isPending}
+                    disabled={isPending}
                     className="flex-1"
                   >
-                    {createProjectMutation.isPending ? (
+                    {isPending ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Creating...
                       </>
+                    ) : selectedTemplateId ? (
+                      "Create from Template"
                     ) : (
                       "Create Project"
                     )}
