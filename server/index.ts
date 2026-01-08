@@ -1,16 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
-import { registerRoutes } from "./routes";
+import modularRouter from "./router"; // Import the new modular router
+import { setupAuth } from "./googleAuth";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeWebSocket } from "./services/websocket.service";
-import { initializeSecurityCleanup } from "./middlewares/security.middleware";
-// Performance middleware imports (to be added later)
-// import { 
-//   compressionMiddleware, 
-//   performanceMonitoring, 
-//   staticAssetOptimization,
-//   optimizeApiResponse 
-// } from "./middlewares/performance.middleware";
+import { initializeSecurityCleanup, secureHeaders, rateLimiters } from "./middlewares/security.middleware";
+import { queueService } from "./services/queue.service";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 const httpServer = createServer(app);
@@ -18,18 +15,18 @@ const httpServer = createServer(app);
 // Initialize WebSocket service
 const webSocketService = initializeWebSocket(httpServer);
 
-// Initialize security cleanup timer for rate limiting
+// Initialize security cleanup timer
 const securityCleanupTimer = initializeSecurityCleanup();
 
-// Apply performance optimizations early in middleware chain (to be added later)
-// app.use(compressionMiddleware);
-// app.use(performanceMonitoring);
-// app.use(staticAssetOptimization);
-// app.use(optimizeApiResponse);
-
+// Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Security middleware
+app.use(secureHeaders);
+app.use(rateLimiters.global);
+
+// Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -61,32 +58,37 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  // Ensure uploads directory exists (legacy support)
+  const uploadDir = path.join(process.cwd(), "uploads");
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Auth setup
+  await setupAuth(app);
+
+  // Register modular routes
+  app.use("/api", modularRouter);
+
+  // Start background job worker
+  queueService.start();
+
+  // Setup Vite
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    await setupVite(app, httpServer);
   } else {
     serveStatic(app);
   }
 
-  // Import and use centralized error handling middleware AFTER Vite setup
+  // Error handling
   const { errorHandler, notFoundHandler } = await import("./middlewares");
-  
-  // Apply centralized error handling last to catch any remaining unhandled routes
   app.use(notFoundHandler);
   app.use(errorHandler);
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
   
-  // Use httpServer instead of server for WebSocket support
   httpServer.listen(port, "0.0.0.0", () => {
     log(`Server with WebSocket support serving on port ${port}`);
+    log(`Background job worker started`);
   });
 })();

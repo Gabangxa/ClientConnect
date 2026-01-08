@@ -16,6 +16,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { projectService, deliverableService, messageService, invoiceService, feedbackService } from '../services';
+import { cacheService } from '../services/cache.service';
 
 /**
  * Controller class for handling project-related operations
@@ -70,6 +71,15 @@ export class ProjectController {
   async getProject(req: Request, res: Response, next: NextFunction) {
     try {
       const { projectId } = req.params; // Already validated by middleware
+
+      // Try to get from cache first
+      const cacheKey = `project_full_${projectId}`;
+      const cachedData = await cacheService.get(cacheKey);
+
+      if (cachedData) {
+        return res.json(cachedData);
+      }
+
       const project = await projectService.getProjectById(projectId);
       
       if (!project) {
@@ -84,13 +94,18 @@ export class ProjectController {
         feedbackService.getFeedbackByProject(projectId),
       ]);
 
-      res.json({
+      const responseData = {
         project,
         deliverables,
         messages,
         invoices,
         feedback,
-      });
+      };
+
+      // Cache the result for 1 minute (short TTL for active data)
+      await cacheService.set(cacheKey, responseData, 60);
+
+      res.json(responseData);
     } catch (error) {
       next(error);
     }
@@ -102,6 +117,10 @@ export class ProjectController {
       const updates = req.body; // Already validated by middleware
 
       const project = await projectService.updateProject(projectId, updates);
+
+      // Invalidate cache
+      await cacheService.delete(`project_full_${projectId}`);
+
       res.json(project);
     } catch (error) {
       next(error);

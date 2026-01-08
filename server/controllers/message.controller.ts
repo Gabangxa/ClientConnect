@@ -20,6 +20,7 @@ import { messageService } from '../services';
 import { messageAttachmentService } from '../services/messageAttachment.service';
 import { insertMessageSchema } from '@shared/schema';
 import { storageService } from '../services/storage.service';
+import { queueService } from '../services/queue.service';
 
 /**
  * Controller class for handling message-related operations
@@ -55,6 +56,14 @@ export class MessageController {
       });
 
       const message = await messageService.createMessageWithAttachments(messageData, attachmentFiles);
+
+      // Enqueue job to process message (e.g., notification, analytics)
+      await queueService.addJob('process_message', {
+        messageId: message.id,
+        projectId: message.projectId,
+        action: 'notify_client'
+      });
+
       res.status(201).json(message);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -206,17 +215,31 @@ export class MessageController {
       
       // For client portal access, project is already verified by middleware
 
-      // Download file from storage
-      const fileBuffer = await storageService.downloadFile(attachment.filePath);
-      
       // Set appropriate headers
+      // Sanitize filename to prevent header injection
+      const safeFileName = attachment.fileName.replace(/"/g, '');
+
       res.set({
         'Content-Type': attachment.mimeType,
-        'Content-Disposition': `attachment; filename="${attachment.fileName}"`,
+        'Content-Disposition': `attachment; filename="${safeFileName}"`,
+        // We might not know exact length if streaming, but we have it in DB
         'Content-Length': attachment.fileSize.toString(),
       });
       
-      res.send(fileBuffer);
+      // Stream file from storage
+      const fileStream = storageService.downloadFileStream(attachment.filePath);
+
+      fileStream.pipe(res);
+
+      fileStream.on('error', (error) => {
+        console.error("Stream error:", error);
+        // If headers not sent yet (unlikely here as we set them above)
+        if (!res.headersSent) {
+          res.status(500).json({ message: "Failed to download attachment" });
+        } else {
+          res.end();
+        }
+      });
     } catch (error) {
       console.error("Error downloading attachment:", error);
       res.status(500).json({ message: "Failed to download attachment" });
