@@ -1,62 +1,30 @@
 /**
  * Storage Service
  * 
- * Hybrid storage system that provides seamless integration between
- * Replit Object Storage and local filesystem storage with automatic fallback.
- * Ensures reliable file handling regardless of storage availability.
+ * Production-ready storage system using Replit Object Storage exclusively.
+ * Enforces scalable file handling and versioning.
  * 
  * Features:
- * - Automatic Object Storage detection and fallback
+ * - Exclusive Object Storage usage (enforced for production)
+ * - File versioning (preserves history)
  * - Unified file upload/download interface
- * - Smart file path generation
- * - Local storage backup for development
- * - File deletion and cleanup operations
+ * - Smart file path generation with versioning support
  * 
  * @module StorageService
  */
 
 import { Client } from '@replit/object-storage';
-import fs from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
 
 /**
- * Service class for hybrid file storage operations
- * Automatically detects and uses the best available storage system
+ * Service class for object storage operations
  */
 export class StorageService {
-  private client: Client | null = null;
-  private useObjectStorage: boolean = false;
-  private localStorageDir: string;
-  private initialized: boolean = false;
+  private client: Client;
 
   constructor() {
-    this.localStorageDir = path.join(process.cwd(), "uploads");
-    this.ensureLocalDirectory();
-    // Don't initialize object storage in constructor to avoid blocking startup
-  }
-
-  private async ensureInitialized() {
-    if (this.initialized) return;
-    
-    try {
-      // Try to initialize object storage
-      this.client = new Client();
-      // Test the client with a simple operation
-      await this.client.list();
-      this.useObjectStorage = true;
-      console.log("✅ Object storage initialized successfully");
-    } catch (error) {
-      console.log("⚠️ Object storage not available, using local storage fallback");
-      this.useObjectStorage = false;
-    }
-    
-    this.initialized = true;
-  }
-
-  private ensureLocalDirectory() {
-    if (!fs.existsSync(this.localStorageDir)) {
-      fs.mkdirSync(this.localStorageDir, { recursive: true });
-    }
+    this.client = new Client();
   }
 
   /**
@@ -67,33 +35,27 @@ export class StorageService {
    * @returns The file path/key
    */
   async uploadFile(filePath: string, buffer: Buffer, mimeType?: string): Promise<string> {
-    await this.ensureInitialized();
-    
     try {
-      console.log(`Storage service: Uploading to ${this.useObjectStorage ? 'Object Storage' : 'Local Storage'}`);
-      
-      if (this.useObjectStorage && this.client) {
-        await this.client.uploadFromBytes(filePath, buffer);
-        console.log(`✅ File uploaded to Object Storage: ${filePath}`);
-        return filePath;
-      } else {
-        // Local storage fallback
-        this.ensureLocalDirectory(); // Ensure directory exists
-        const localPath = path.join(this.localStorageDir, path.basename(filePath));
-        await fs.promises.writeFile(localPath, buffer);
-        console.log(`✅ File uploaded to Local Storage: ${localPath}`);
-        return path.basename(filePath); // Return just filename for local storage
+      // Check if file exists to handle versioning
+      const exists = await this.fileExists(filePath);
+      let finalPath = filePath;
+
+      if (exists) {
+        // Versioning: Append timestamp to filename if it already exists
+        const ext = path.extname(filePath);
+        const name = path.basename(filePath, ext);
+        const dir = path.dirname(filePath);
+        finalPath = `${dir}/${name}_v${Date.now()}${ext}`;
+        console.log(`[Storage] Versioning applied: ${filePath} -> ${finalPath}`);
       }
+
+      console.log(`[Storage] Uploading to Object Storage: ${finalPath}`);
+      await this.client.uploadFromBytes(finalPath, buffer);
+      console.log(`[Storage] Upload success`);
+      return finalPath;
     } catch (error) {
-      console.error('Error uploading file:', error);
-      console.error('Upload details:', {
-        filePath,
-        bufferSize: buffer.length,
-        useObjectStorage: this.useObjectStorage,
-        hasClient: !!this.client,
-        localStorageDir: this.localStorageDir
-      });
-      throw new Error('Failed to upload file');
+      console.error('[Storage] Error uploading file:', error);
+      throw new Error('Failed to upload file to object storage');
     }
   }
 
@@ -101,31 +63,29 @@ export class StorageService {
    * Download a file from Replit Object Storage
    * @param filePath - The path/key of the file to download
    * @returns The file buffer
+   * @deprecated Use downloadFileStream for memory efficiency
    */
   async downloadFile(filePath: string): Promise<Buffer> {
-    await this.ensureInitialized();
-    
     try {
-      if (this.useObjectStorage && this.client) {
-        try {
-          const result = await this.client.downloadAsBytes(filePath);
-          // Handle Result type properly - convert to unknown first to avoid type error
-          return result as unknown as Buffer;
-        } catch (error) {
-          console.error('Object storage download failed, trying local fallback:', error);
-          // Fall through to local storage
-        }
-      }
-      
-      // Local storage fallback (or primary if object storage not available)
-      {
-        // Local storage fallback
-        const localPath = path.join(this.localStorageDir, path.basename(filePath));
-        return await fs.promises.readFile(localPath);
-      }
+      const result = await this.client.downloadAsBytes(filePath);
+      return result as unknown as Buffer;
     } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('[Storage] Error downloading file:', error);
       throw new Error('Failed to download file');
+    }
+  }
+
+  /**
+   * Stream a file from Replit Object Storage
+   * @param filePath - The path/key of the file to download
+   * @returns A readable stream of the file content
+   */
+  downloadFileStream(filePath: string): Readable {
+    try {
+      return this.client.downloadAsStream(filePath);
+    } catch (error) {
+      console.error('[Storage] Error creating download stream:', error);
+      throw new Error('Failed to create download stream');
     }
   }
 
@@ -134,21 +94,11 @@ export class StorageService {
    * @param filePath - The path/key of the file to delete
    */
   async deleteFile(filePath: string): Promise<void> {
-    await this.ensureInitialized();
-    
     try {
-      if (this.useObjectStorage && this.client) {
-        await this.client.delete(filePath);
-      } else {
-        // Local storage fallback
-        const localPath = path.join(this.localStorageDir, path.basename(filePath));
-        if (fs.existsSync(localPath)) {
-          await fs.promises.unlink(localPath);
-        }
-      }
+      await this.client.delete(filePath);
     } catch (error) {
-      console.error('Error deleting file:', error);
-      throw new Error('Failed to delete file');
+      console.error('[Storage] Error deleting file:', error);
+      // Don't throw if delete fails, just log it
     }
   }
 
@@ -158,21 +108,9 @@ export class StorageService {
    * @returns True if file exists, false otherwise
    */
   async fileExists(filePath: string): Promise<boolean> {
-    await this.ensureInitialized();
-    
     try {
-      if (this.useObjectStorage && this.client) {
-        try {
-          await this.client.downloadAsBytes(filePath);
-          return true;
-        } catch {
-          return false;
-        }
-      } else {
-        // Local storage fallback
-        const localPath = path.join(this.localStorageDir, path.basename(filePath));
-        return fs.existsSync(localPath);
-      }
+      const { ok } = await this.client.exists(filePath);
+      return ok;
     } catch (error) {
       return false;
     }
@@ -186,45 +124,25 @@ export class StorageService {
    * @returns A unique file path
    */
   generateFilePath(originalName: string, projectId: string, uploaderType: string): string {
-    const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 8);
-    const extension = originalName.split('.').pop();
+    // Basic path structure: projects/<id>/<type>/<filename>
+    // Versioning is handled in uploadFile if collision occurs
     const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    
-    return `projects/${projectId}/${uploaderType}/${timestamp}_${randomSuffix}_${sanitizedName}`;
+    return `projects/${projectId}/${uploaderType}/${sanitizedName}`;
   }
 
   /**
    * Generate a unique file path for storing message attachments
-   * @param originalName - The original filename
-   * @param messageId - The message ID
-   * @param projectId - The project ID
-   * @returns A unique file path for message attachments
    */
   generateMessageAttachmentPath(originalName: string, messageId: string, projectId: string): string {
-    const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 8);
     const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    
-    return `projects/${projectId}/messages/${messageId}/attachments/${timestamp}_${randomSuffix}_${sanitizedName}`;
+    return `projects/${projectId}/messages/${messageId}/${sanitizedName}`;
   }
 
   /**
-   * Get the download URL for a file (in this case, it's just the file path)
-   * @param filePath - The path/key of the file
-   * @returns The download URL/path
+   * Get the download URL for a file
    */
   getDownloadUrl(filePath: string): string {
-    if (this.useObjectStorage) {
-      return `/api/files/download/${encodeURIComponent(filePath)}`;
-    } else {
-      // Local storage uses legacy route
-      return `/api/files/${path.basename(filePath)}`;
-    }
-  }
-
-  isUsingObjectStorage(): boolean {
-    return this.useObjectStorage;
+    return `/api/files/download/${encodeURIComponent(filePath)}`;
   }
 }
 

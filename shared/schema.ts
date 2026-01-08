@@ -111,6 +111,8 @@ export const accessLogs = pgTable("access_logs", {
   index("idx_access_logs_client_ip").on(table.clientIp),
   // Composite index for project access tracking
   index("idx_access_logs_project_accessed").on(table.projectId, table.accessedAt),
+  // Additional composite index for filtering logs by project and token
+  index("idx_access_logs_project_token").on(table.projectId, table.shareToken),
 ]);
 
 export const messages = pgTable("messages", {
@@ -143,6 +145,8 @@ export const messages = pgTable("messages", {
   // Composite indexes for common query patterns
   index("idx_messages_project_unread").on(table.projectId, table.isRead),
   index("idx_messages_project_created").on(table.projectId, table.createdAt),
+  // Additional composite index for project sender filtering
+  index("idx_messages_project_sender").on(table.projectId, table.senderType),
 ]);
 
 export const invoices = pgTable("invoices", {
@@ -230,6 +234,32 @@ export const templateDeliverables = pgTable("template_deliverables", {
 }, (table) => [
   index("idx_template_deliverables_template_id").on(table.templateId),
   index("idx_template_deliverables_sort_order").on(table.sortOrder),
+]);
+
+// Cache table for Postgres-based caching
+export const appCache = pgTable("app_cache", {
+  key: varchar("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_app_cache_expires_at").on(table.expiresAt),
+]);
+
+// Background jobs table for async processing
+export const backgroundJobs = pgTable("background_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: varchar("type").notNull(), // e.g., 'send_email', 'process_file'
+  payload: jsonb("payload").notNull(),
+  status: varchar("status").notNull().default("pending"), // pending, processing, completed, failed
+  attempts: integer("attempts").default(0),
+  lastError: text("last_error"),
+  nextRunAt: timestamp("next_run_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_background_jobs_status_next_run").on(table.status, table.nextRunAt),
+  index("idx_background_jobs_type").on(table.type),
 ]);
 
 // Relations
