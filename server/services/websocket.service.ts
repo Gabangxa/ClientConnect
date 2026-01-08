@@ -275,7 +275,7 @@ export class WebSocketService {
     
     // Find and remove typing user
     let typingUser: TypingUser | undefined;
-    for (const [key, user] of this.typingUsers.entries()) {
+    for (const [key, user] of Array.from(this.typingUsers.entries())) {
       if (user.projectId === projectId && user.userId === userId) {
         typingUser = user;
         this.typingUsers.delete(key);
@@ -381,7 +381,7 @@ export class WebSocketService {
       this.userPresence.delete(userKey);
       
       // Clean up typing indicators for this user
-      for (const [key, typingUser] of this.typingUsers.entries()) {
+      for (const [key, typingUser] of Array.from(this.typingUsers.entries())) {
         if (typingUser.userId === presence.userId && typingUser.projectId === presence.projectId) {
           this.typingUsers.delete(key);
           
@@ -406,7 +406,7 @@ export class WebSocketService {
 
   private getProjectUsers(projectId: string): UserPresence[] {
     const users: UserPresence[] = [];
-    for (const presence of this.userPresence.values()) {
+    for (const presence of Array.from(this.userPresence.values())) {
       if (presence.projectId === projectId) {
         users.push(presence);
       }
@@ -419,7 +419,7 @@ export class WebSocketService {
    */
   getTypingUsers(projectId: string): TypingUser[] {
     const users: TypingUser[] = [];
-    for (const typingUser of this.typingUsers.values()) {
+    for (const typingUser of Array.from(this.typingUsers.values())) {
       if (typingUser.projectId === projectId) {
         users.push(typingUser);
       }
@@ -444,7 +444,7 @@ export class WebSocketService {
     projectRooms: Set<string>;
   } {
     const projectRooms = new Set<string>();
-    for (const presence of this.userPresence.values()) {
+    for (const presence of Array.from(this.userPresence.values())) {
       projectRooms.add(presence.projectId);
     }
 
@@ -462,7 +462,7 @@ export class WebSocketService {
     console.log('Shutting down WebSocket service...');
     
     // Clear all typing timeouts
-    for (const timeout of this.typingTimeouts.values()) {
+    for (const timeout of Array.from(this.typingTimeouts.values())) {
       clearTimeout(timeout);
     }
     this.typingTimeouts.clear();

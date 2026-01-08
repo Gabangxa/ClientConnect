@@ -164,14 +164,14 @@ export function useWebSocket({
       });
     });
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', (reason: string) => {
       setConnectionStatus(prev => ({
         ...prev,
         isConnected: false,
       }));
     });
 
-    socket.on('reconnect_attempt', (attemptNumber) => {
+    socket.on('reconnect_attempt', (attemptNumber: number) => {
       setConnectionStatus(prev => ({
         ...prev,
         isReconnecting: true,

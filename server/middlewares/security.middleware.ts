@@ -90,7 +90,7 @@ const cleanupExpiredIPs = (): void => {
   const expiredIPs: string[] = [];
 
   // Find IPs that haven't been seen recently
-  for (const [ip, lastSeen] of ipLastSeen.entries()) {
+  for (const [ip, lastSeen] of Array.from(ipLastSeen.entries())) {
     if (now - lastSeen > IP_EXPIRY_TIME) {
       expiredIPs.push(ip);
     }
