@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { logger } from '@shared/logger';
+import { captureException } from '@/lib/monitoring';
 
 interface Props {
   children: ReactNode;
@@ -79,15 +80,9 @@ export class ErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
 
-    // TODO: Send error to monitoring service (e.g., Sentry, LogRocket)
-    // this.reportErrorToService(error, errorInfo);
+    // Send error to monitoring service
+    captureException(error, { componentStack: errorInfo.componentStack });
   }
-
-  private reportErrorToService = (error: Error, errorInfo: ErrorInfo) => {
-    // Placeholder for error reporting service integration
-    // Example: Sentry.captureException(error, { contexts: { react: errorInfo } });
-    console.warn('Error reporting service not configured');
-  };
 
   private handleRetry = () => {
     // Reset error state to allow retry
